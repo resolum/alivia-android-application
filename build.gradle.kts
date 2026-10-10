@@ -2,4 +2,12 @@
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.compose) apply false
+    id("org.sonarqube") version "7.5.0.8588"
+}
+
+sonar {
+    properties {
+        property("sonar.projectKey", "resolum_alivia-android-application")
+        property("sonar.organization", "resolum")
+    }
 }
