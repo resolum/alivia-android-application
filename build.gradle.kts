@@ -9,5 +9,21 @@ sonar {
     properties {
         property("sonar.projectKey", "resolum_alivia-android-application")
         property("sonar.organization", "resolum")
+        property(
+            "sonar.androidLint.reportPaths",
+            "${project.projectDir}/app/build/reports/lint-results-debug.xml"
+        )
+        property(
+            "sonar.exclusions",
+            "**/*.webp,**/*.png,**/*.jpg,**/*.jpeg,**/*.gif,**/*.ico"
+        )
     }
+}
+
+tasks.named("sonar") {
+    dependsOn(
+        ":app:lintDebug",
+        ":app:testDebugUnitTest",
+        ":app:assembleDebug"
+    )
 }
