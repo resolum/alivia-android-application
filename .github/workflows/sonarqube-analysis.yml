@@ -39,6 +39,16 @@ jobs:
       - name: Compile Android application
         run: ./gradlew assembleDebug
 
+      - name: Upload dependency verification reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-verification-reports
+          path: |
+            **/build/reports/dependency-verification/**
+            **/build/reports/problems/**
+          if-no-files-found: warn
+
       - name: Run SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
