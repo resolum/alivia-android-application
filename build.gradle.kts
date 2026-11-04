@@ -17,13 +17,32 @@ sonar {
             "sonar.exclusions",
             "**/*.webp,**/*.png,**/*.jpg,**/*.jpeg,**/*.gif,**/*.ico"
         )
+        property(
+            "sonar.coverage.jacoco.xmlReportPaths",
+            "${project.projectDir}/app/build/reports/coverage/test/debug/report.xml"
+        )
+        // Compose screens, theme, navigation, DI wiring and the Android glue (DataStore, Retrofit/OkHttp
+        // construction) are not reachable from JVM unit tests; the rules they use are tested where they live.
+        property(
+            "sonar.coverage.exclusions",
+            listOf(
+                "**/presentation/**",
+                "**/core/ui/**",
+                "**/core/navigation/**",
+                "**/di/**",
+                "**/MainActivity.kt",
+                "**/AliviaApplication.kt",
+                "**/datastore/TokenDataStore.kt",
+                "**/remote/ApiClientFactory.kt",
+            ).joinToString(",")
+        )
     }
 }
 
 tasks.named("sonar") {
     dependsOn(
         ":app:lintDebug",
-        ":app:testDebugUnitTest",
+        ":app:createDebugUnitTestCoverageReport",
         ":app:assembleDebug"
     )
 }

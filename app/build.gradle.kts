@@ -28,9 +28,14 @@ android {
 
     buildTypes {
         release {
-            optimization {
-                enable = false
-            }
+            // R8 shrinks and obfuscates the release; proguard-rules.pro keeps what Gson reads by reflection.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        debug {
+            // JaCoCo report of the JVM unit tests (createDebugUnitTestCoverageReport), read by SonarCloud.
+            enableUnitTestCoverage = true
         }
     }
     compileOptions {
