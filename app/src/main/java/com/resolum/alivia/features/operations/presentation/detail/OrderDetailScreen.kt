@@ -2,6 +2,7 @@ package com.resolum.alivia.features.operations.presentation.detail
 
 import android.content.Intent
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -183,7 +184,7 @@ private fun OrderBody(order: TechnicalOrder) {
             InfoRow(Icons.Outlined.Person, "Responsable", order.contactName ?: "La familia no indicó quién recibe la visita") {
                 if (order.contactPhone != null) {
                     Button(
-                        onClick = { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${order.contactPhone}"))) },
+                        onClick = { context.startActivity(Intent(Intent.ACTION_DIAL, "tel:${order.contactPhone}".toUri())) },
                         colors = ButtonDefaults.buttonColors(containerColor = Teal, contentColor = TealDark),
                         shape = RoundedCornerShape(50),
                     ) {
@@ -197,7 +198,7 @@ private fun OrderBody(order: TechnicalOrder) {
             InfoRow(Icons.Outlined.Place, "Referencia de acceso", order.directions ?: "Sin indicaciones registradas") {
                 if (order.directions != null) {
                     TextButton(onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(order.directions))))
+                        context.startActivity(Intent(Intent.ACTION_VIEW, ("geo:0,0?q=" + Uri.encode(order.directions)).toUri()))
                     }) {
                         Text("Abrir en Maps", color = Navy)
                         Spacer(Modifier.width(4.dp))
