@@ -8,29 +8,21 @@ import kotlinx.coroutines.flow.first
 
 private val Context.sessionStore by preferencesDataStore(name = "alivia_session")
 
-/** Session tokens and the account that owns them, as the backend issued them. */
-data class StoredSession(
-    val accessToken: String,
-    val refreshToken: String,
-    val accountId: String,
-    val email: String,
-    val role: String,
-)
 
 /**
  * Keeps the session on the device so the technician stays signed in between visits. The network layer reads
  * the tokens synchronously, so the last session is also kept in memory.
  */
-class TokenDataStore(private val context: Context) {
+class TokenDataStore(private val context: Context) : SessionTokenStore {
     @Volatile
     private var cached: StoredSession? = null
 
-    val accessToken: String? get() = cached?.accessToken
+    override val accessToken: String? get() = cached?.accessToken
     val refreshToken: String? get() = cached?.refreshToken
-    val session: StoredSession? get() = cached
+    override val session: StoredSession? get() = cached
 
     /** Loads the saved session when the app starts. */
-    suspend fun restore(): StoredSession? {
+    override suspend fun restore(): StoredSession? {
         val preferences = context.sessionStore.data.first()
         val access = preferences[ACCESS]
         val refresh = preferences[REFRESH]
@@ -44,7 +36,7 @@ class TokenDataStore(private val context: Context) {
         return cached
     }
 
-    suspend fun save(session: StoredSession) {
+    override suspend fun save(session: StoredSession) {
         cached = session
         context.sessionStore.edit { preferences ->
             preferences[ACCESS] = session.accessToken
@@ -55,7 +47,7 @@ class TokenDataStore(private val context: Context) {
         }
     }
 
-    suspend fun clear() {
+    override suspend fun clear() {
         cached = null
         context.sessionStore.edit { it.clear() }
     }

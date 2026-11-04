@@ -3,7 +3,7 @@ package com.resolum.alivia.features.shared.data.datasources.remote
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.resolum.alivia.features.shared.data.datasources.datastore.StoredSession
-import com.resolum.alivia.features.shared.data.datasources.datastore.TokenDataStore
+import com.resolum.alivia.features.shared.data.datasources.datastore.SessionTokenStore
 import kotlinx.coroutines.runBlocking
 import okhttp3.Authenticator
 import okhttp3.MediaType.Companion.toMediaType
@@ -18,12 +18,12 @@ import okhttp3.Route
  * once with the refresh token and the call is repeated. If the renewal fails the session is closed.
  */
 class TokenRefreshAuthenticator(
-    private val baseUrl: String,
-    private val tokens: TokenDataStore,
+    private val tokens: SessionTokenStore,
     private val onSessionExpired: () -> Unit,
+    private val renewSession: (StoredSession) -> StoredSession?,
 ) : Authenticator {
-    private val gson = Gson()
-    private val client = OkHttpClient()
+    constructor(baseUrl: String, tokens: SessionTokenStore, onSessionExpired: () -> Unit) :
+        this(tokens, onSessionExpired, RefreshTokenCall(baseUrl)::renew)
 
     override fun authenticate(route: Route?, response: Response): Request? {
         if (response.request.url.encodedPath.contains("/api/v1/auth/")) return null
@@ -35,7 +35,7 @@ class TokenRefreshAuthenticator(
             if (sent != null && sent != current.accessToken) {
                 return response.request.newBuilder().header("Authorization", "Bearer ${current.accessToken}").build()
             }
-            val renewed = renew(current) ?: run {
+            val renewed = renewSession(current) ?: run {
                 runBlocking { tokens.clear() }
                 onSessionExpired()
                 return null
@@ -44,8 +44,14 @@ class TokenRefreshAuthenticator(
             return response.request.newBuilder().header("Authorization", "Bearer ${renewed.accessToken}").build()
         }
     }
+}
 
-    private fun renew(current: StoredSession): StoredSession? = runCatching {
+/** POST /api/v1/auth/refresh with the refresh token, outside the authenticated client. */
+private class RefreshTokenCall(private val baseUrl: String) {
+    private val gson = Gson()
+    private val client = OkHttpClient()
+
+    fun renew(current: StoredSession): StoredSession? = runCatching {
         val body = gson.toJson(mapOf("refreshToken" to current.refreshToken))
             .toRequestBody("application/json".toMediaType())
         val request = Request.Builder().url(baseUrl + "api/v1/auth/refresh").post(body).build()

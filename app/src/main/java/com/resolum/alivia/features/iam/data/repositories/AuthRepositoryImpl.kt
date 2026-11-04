@@ -6,13 +6,13 @@ import com.resolum.alivia.features.iam.domain.models.Session
 import com.resolum.alivia.features.iam.domain.models.SignIn
 import com.resolum.alivia.features.iam.domain.models.UserRole
 import com.resolum.alivia.features.iam.domain.repositories.AuthRepository
-import com.resolum.alivia.features.shared.data.datasources.datastore.TokenDataStore
+import com.resolum.alivia.features.shared.data.datasources.datastore.SessionTokenStore
 import com.resolum.alivia.features.shared.data.datasources.remote.NetworkResult
 import com.resolum.alivia.features.shared.data.repositories.BaseRepository
 
 class AuthRepositoryImpl(
     private val facade: AuthFacadeService,
-    private val tokens: TokenDataStore,
+    private val tokens: SessionTokenStore,
 ) : BaseRepository(), AuthRepository {
 
     /** Signs in and keeps the session only for the roles that use the mobile app. */

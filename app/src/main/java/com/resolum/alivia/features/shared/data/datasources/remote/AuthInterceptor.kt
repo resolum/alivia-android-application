@@ -1,11 +1,11 @@
 package com.resolum.alivia.features.shared.data.datasources.remote
 
-import com.resolum.alivia.features.shared.data.datasources.datastore.TokenDataStore
+import com.resolum.alivia.features.shared.data.datasources.datastore.SessionTokenStore
 import okhttp3.Interceptor
 import okhttp3.Response
 
 /** Adds the access token to every call except the sign-in and refresh ones. */
-class AuthInterceptor(private val tokens: TokenDataStore) : Interceptor {
+class AuthInterceptor(private val tokens: SessionTokenStore) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val token = tokens.accessToken
