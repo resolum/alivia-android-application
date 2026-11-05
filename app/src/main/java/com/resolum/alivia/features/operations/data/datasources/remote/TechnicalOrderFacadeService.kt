@@ -2,6 +2,7 @@ package com.resolum.alivia.features.operations.data.datasources.remote
 
 import com.resolum.alivia.features.operations.data.datasources.remote.models.EvaluationResultRequestDto
 import com.resolum.alivia.features.operations.data.datasources.remote.models.InstallationResultRequestDto
+import com.resolum.alivia.features.operations.data.datasources.remote.models.MaintenanceResultRequestDto
 import com.resolum.alivia.features.operations.data.datasources.remote.models.RegisterDeviceRequestDto
 import com.resolum.alivia.features.operations.data.datasources.remote.services.TechnicalOrderService
 
@@ -17,4 +18,8 @@ class TechnicalOrderFacadeService(private val service: TechnicalOrderService) {
     suspend fun removeDevice(orderId: Long, macAddress: String) = service.removeDevice(orderId, macAddress)
     suspend fun recordInstallation(orderId: Long, result: String, notes: String?) =
         service.recordInstallation(orderId, InstallationResultRequestDto(result, notes))
+    suspend fun evaluateIncident(orderId: Long) = service.evaluateIncident(orderId)
+    suspend fun confirmVisit(orderId: Long) = service.confirmVisit(orderId)
+    suspend fun recordMaintenance(orderId: Long, diagnosis: String, workPerformed: String) =
+        service.recordMaintenance(orderId, MaintenanceResultRequestDto(diagnosis, workPerformed))
 }

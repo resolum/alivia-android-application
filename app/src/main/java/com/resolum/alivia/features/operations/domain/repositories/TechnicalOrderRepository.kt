@@ -14,4 +14,7 @@ interface TechnicalOrderRepository {
     suspend fun registerDevice(orderId: Long, alias: String, macAddress: String, type: DeviceType): NetworkResult<TechnicalOrder>
     suspend fun removeDevice(orderId: Long, macAddress: String): NetworkResult<TechnicalOrder>
     suspend fun recordInstallation(orderId: Long, result: InstallationResult, notes: String?): NetworkResult<TechnicalOrder>
+    suspend fun evaluateIncident(orderId: Long): NetworkResult<TechnicalOrder>
+    suspend fun confirmVisit(orderId: Long): NetworkResult<TechnicalOrder>
+    suspend fun resolveIncident(orderId: Long, diagnosis: String, workPerformed: String): NetworkResult<TechnicalOrder>
 }

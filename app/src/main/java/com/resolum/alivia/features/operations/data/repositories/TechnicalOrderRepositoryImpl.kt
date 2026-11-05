@@ -31,6 +31,13 @@ class TechnicalOrderRepositoryImpl(private val facade: TechnicalOrderFacadeServi
     override suspend fun recordInstallation(orderId: Long, result: InstallationResult, notes: String?) =
         one { facade.recordInstallation(orderId, result.name, notes) }
 
+    override suspend fun evaluateIncident(orderId: Long) = one { facade.evaluateIncident(orderId) }
+
+    override suspend fun confirmVisit(orderId: Long) = one { facade.confirmVisit(orderId) }
+
+    override suspend fun resolveIncident(orderId: Long, diagnosis: String, workPerformed: String) =
+        one { facade.recordMaintenance(orderId, diagnosis, workPerformed) }
+
     private suspend fun one(call: suspend () -> TechnicalOrderDto): NetworkResult<TechnicalOrder> =
         when (val result = safeCall(call)) {
             is NetworkResult.Error -> result

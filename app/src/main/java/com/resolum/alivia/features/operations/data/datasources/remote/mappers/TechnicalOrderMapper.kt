@@ -1,8 +1,13 @@
 package com.resolum.alivia.features.operations.data.datasources.remote.mappers
 
+import com.resolum.alivia.features.operations.data.datasources.remote.models.IncidentSummaryDto
+import com.resolum.alivia.features.operations.data.datasources.remote.models.InstalledDeviceDto
 import com.resolum.alivia.features.operations.data.datasources.remote.models.TechnicalOrderDto
 import com.resolum.alivia.features.operations.domain.models.DeviceType
 import com.resolum.alivia.features.operations.domain.models.EvaluationResult
+import com.resolum.alivia.features.operations.domain.models.IncidentProblem
+import com.resolum.alivia.features.operations.domain.models.IncidentStatus
+import com.resolum.alivia.features.operations.domain.models.IncidentSummary
 import com.resolum.alivia.features.operations.domain.models.InstallationResult
 import com.resolum.alivia.features.operations.domain.models.InstalledDevice
 import com.resolum.alivia.features.operations.domain.models.OrderProgress
@@ -44,10 +49,26 @@ object TechnicalOrderMapper {
             completionNotes = dto.completionNotes,
             startedAt = startedAt,
             completedAt = instantOrNull(dto.completedAt),
-            installedDevices = dto.installedDevices.orEmpty().mapNotNull { device ->
-                val kind = enumOrNull<DeviceType>(device.type) ?: return@mapNotNull null
-                InstalledDevice(device.alias.orEmpty(), device.macAddress.orEmpty(), kind)
-            },
+            installedDevices = dto.installedDevices.orEmpty().mapNotNull(::deviceOf),
+            incident = dto.incident?.let(::incidentOf),
+        )
+    }
+
+    private fun deviceOf(device: InstalledDeviceDto): InstalledDevice? {
+        val kind = enumOrNull<DeviceType>(device.type) ?: return null
+        return InstalledDevice(device.alias.orEmpty(), device.macAddress.orEmpty(), kind)
+    }
+
+    private fun incidentOf(dto: IncidentSummaryDto): IncidentSummary? {
+        val id = dto.id ?: return null
+        return IncidentSummary(
+            id = id,
+            code = dto.code ?: "INC-$id",
+            status = enumOrNull<IncidentStatus>(dto.status),
+            problem = enumOrNull<IncidentProblem>(dto.problemType) ?: IncidentProblem.OTHER,
+            description = dto.description.orEmpty(),
+            occurredAt = instantOrNull(dto.occurredAt),
+            device = dto.device?.let(::deviceOf),
         )
     }
 
