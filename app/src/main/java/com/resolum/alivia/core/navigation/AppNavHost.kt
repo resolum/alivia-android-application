@@ -22,6 +22,7 @@ import com.resolum.alivia.features.operations.presentation.detail.OrderDetailScr
 import com.resolum.alivia.features.operations.presentation.evaluation.EvaluationNext
 import com.resolum.alivia.features.operations.presentation.evaluation.EvaluationScreen
 import com.resolum.alivia.features.operations.presentation.installation.InstallationScreen
+import com.resolum.alivia.features.operations.presentation.maintenance.ResolveIncidentScreen
 import com.resolum.alivia.features.shared.di.SharedModule
 import com.resolum.alivia.features.shared.presentation.MainScreen
 import kotlinx.coroutines.launch
@@ -34,11 +35,13 @@ object Routes {
     const val EVALUATION = "order/{orderId}/evaluation"
     const val INSTALLATION = "order/{orderId}/installation"
     const val COMPLETED = "order/{orderId}/completed"
+    const val RESOLVE = "order/{orderId}/resolve"
 
     fun order(id: Long) = "order/$id"
     fun evaluation(id: Long) = "order/$id/evaluation"
     fun installation(id: Long) = "order/$id/installation"
     fun completed(id: Long) = "order/$id/completed"
+    fun resolve(id: Long) = "order/$id/resolve"
 }
 
 private val orderArgument = listOf(navArgument("orderId") { type = NavType.LongType })
@@ -93,6 +96,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 onOpenEvaluation = { navController.navigate(Routes.evaluation(it)) },
                 onOpenInstallation = { navController.navigate(Routes.installation(it)) },
                 onOpenCompleted = { navController.navigate(Routes.completed(it)) },
+                onOpenResolve = { navController.navigate(Routes.resolve(it)) },
             )
         }
         composable(Routes.EVALUATION, arguments = orderArgument) { entry ->
@@ -114,6 +118,14 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 orderId = orderId,
                 onExit = { navController.popBackStack() },
                 onCompleted = { navController.navigate(Routes.completed(it)) { popUpTo(Routes.MAIN) } },
+            )
+        }
+        composable(Routes.RESOLVE, arguments = orderArgument) { entry ->
+            val orderId = entry.arguments?.getLong("orderId") ?: return@composable
+            ResolveIncidentScreen(
+                orderId = orderId,
+                onBack = { navController.popBackStack() },
+                onResolved = { navController.navigate(Routes.completed(it)) { popUpTo(Routes.MAIN) } },
             )
         }
         composable(Routes.COMPLETED, arguments = orderArgument) { entry ->
