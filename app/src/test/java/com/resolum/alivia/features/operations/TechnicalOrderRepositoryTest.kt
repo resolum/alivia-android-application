@@ -3,6 +3,7 @@ package com.resolum.alivia.features.operations
 import com.resolum.alivia.features.operations.data.datasources.remote.TechnicalOrderFacadeService
 import com.resolum.alivia.features.operations.data.datasources.remote.models.EvaluationResultRequestDto
 import com.resolum.alivia.features.operations.data.datasources.remote.models.InstallationResultRequestDto
+import com.resolum.alivia.features.operations.data.datasources.remote.models.MaintenanceResultRequestDto
 import com.resolum.alivia.features.operations.data.datasources.remote.models.InstalledDeviceDto
 import com.resolum.alivia.features.operations.data.datasources.remote.models.RegisterDeviceRequestDto
 import com.resolum.alivia.features.operations.data.datasources.remote.models.TechnicalOrderDto
@@ -59,6 +60,10 @@ class TechnicalOrderRepositoryTest {
         override suspend fun registerDevice(orderId: Long, body: RegisterDeviceRequestDto) = reply("register:${body.type}:${body.macAddress}", orderId)
         override suspend fun removeDevice(orderId: Long, macAddress: String) = reply("remove:$macAddress", orderId)
         override suspend fun recordInstallation(orderId: Long, body: InstallationResultRequestDto) = reply("installation:${body.result}", orderId)
+        override suspend fun evaluateIncident(orderId: Long) = reply("evaluate", orderId)
+        override suspend fun confirmVisit(orderId: Long) = reply("confirm", orderId)
+        override suspend fun recordMaintenance(orderId: Long, body: MaintenanceResultRequestDto) =
+            reply("maintenance:${body.diagnosis}:${body.workPerformed}", orderId)
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.resolum.alivia.features.operations.domain.usecases
 
 import com.resolum.alivia.features.operations.domain.models.DeviceType
 import com.resolum.alivia.features.operations.domain.models.EvaluationResult
+import com.resolum.alivia.features.operations.domain.models.IncidentAction
 import com.resolum.alivia.features.operations.domain.models.InstallationResult
 import com.resolum.alivia.features.operations.domain.models.MacAddress
 import com.resolum.alivia.features.operations.domain.models.ServiceType
@@ -70,5 +71,40 @@ class CompleteInstallationUseCase(private val repository: TechnicalOrderReposito
         val cleanNotes = notes.trim().ifEmpty { null }
         if ((cleanNotes?.length ?: 0) > 300) return NetworkResult.Error("Las notas no pueden pasar de 300 caracteres.")
         return repository.recordInstallation(order.id, result, cleanNotes)
+    }
+}
+
+/**
+ * Closes the incident of a started maintenance order: what the technician found and what was done.
+ * The backend marks the order completed and the family sees the incident as resolved.
+ */
+class ResolveIncidentUseCase(private val repository: TechnicalOrderRepository) {
+    suspend operator fun invoke(order: TechnicalOrder, diagnosis: String, workPerformed: String): NetworkResult<TechnicalOrder> {
+        val cleanDiagnosis = diagnosis.trim()
+        val cleanWork = workPerformed.trim()
+        return when {
+            !order.awaitsResolution -> NetworkResult.Error("Inicia la atención antes de registrar la resolución.")
+            cleanDiagnosis.isEmpty() -> NetworkResult.Error("Describe el diagnóstico del dispositivo.")
+            cleanWork.isEmpty() -> NetworkResult.Error("Describe el trabajo realizado.")
+            cleanDiagnosis.length > MAX_RESOLUTION || cleanWork.length > MAX_RESOLUTION ->
+                NetworkResult.Error("Cada campo admite hasta $MAX_RESOLUTION caracteres.")
+            else -> repository.resolveIncident(order.id, cleanDiagnosis, cleanWork)
+        }
+    }
+
+    companion object {
+        const val MAX_RESOLUTION = 500
+    }
+}
+
+/**
+ * Moves the incident of a maintenance order one step: Registrada → En evaluación when the technician reviewed
+ * the report, then En evaluación → Visita programada when the technician confirms the visit.
+ */
+class AdvanceIncidentUseCase(private val repository: TechnicalOrderRepository) {
+    suspend operator fun invoke(order: TechnicalOrder): NetworkResult<TechnicalOrder> = when (order.incidentAction) {
+        IncidentAction.EVALUATE -> repository.evaluateIncident(order.id)
+        IncidentAction.CONFIRM_VISIT -> repository.confirmVisit(order.id)
+        else -> NetworkResult.Error("La incidencia no tiene un paso pendiente de evaluación o confirmación.")
     }
 }

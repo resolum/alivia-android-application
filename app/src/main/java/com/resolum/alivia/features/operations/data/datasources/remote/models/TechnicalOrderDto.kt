@@ -22,7 +22,21 @@ data class TechnicalOrderDto(
     val startedAt: String?,
     val completedAt: String?,
     val installedDevices: List<InstalledDeviceDto>?,
+    val incident: IncidentSummaryDto? = null,
 )
+
+/** The incident a maintenance order attends, as the family reported it. */
+data class IncidentSummaryDto(
+    val id: Long?,
+    val code: String?,
+    val status: String?,
+    val problemType: String?,
+    val description: String?,
+    val occurredAt: String?,
+    val device: InstalledDeviceDto?,
+)
+
+data class MaintenanceResultRequestDto(val diagnosis: String, val workPerformed: String)
 
 data class InstalledDeviceDto(val alias: String?, val macAddress: String?, val type: String?)
 

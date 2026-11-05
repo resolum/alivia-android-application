@@ -121,5 +121,8 @@ class TechnicalOrderRulesTest {
         }
         override suspend fun removeDevice(orderId: Long, macAddress: String) = NetworkResult.Success(anyOrder())
         override suspend fun recordInstallation(orderId: Long, result: InstallationResult, notes: String?) = NetworkResult.Success(anyOrder())
+        override suspend fun evaluateIncident(orderId: Long) = NetworkResult.Success(anyOrder())
+        override suspend fun confirmVisit(orderId: Long) = NetworkResult.Success(anyOrder())
+        override suspend fun resolveIncident(orderId: Long, diagnosis: String, workPerformed: String) = NetworkResult.Success(anyOrder())
     }
 }
