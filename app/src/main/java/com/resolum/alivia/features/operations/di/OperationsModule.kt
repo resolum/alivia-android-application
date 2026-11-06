@@ -4,6 +4,7 @@ import com.resolum.alivia.features.operations.data.datasources.remote.TechnicalO
 import com.resolum.alivia.features.operations.data.datasources.remote.services.TechnicalOrderService
 import com.resolum.alivia.features.operations.data.repositories.TechnicalOrderRepositoryImpl
 import com.resolum.alivia.features.operations.domain.repositories.TechnicalOrderRepository
+import com.resolum.alivia.features.operations.domain.usecases.AdvanceIncidentUseCase
 import com.resolum.alivia.features.operations.domain.usecases.CompleteInstallationUseCase
 import com.resolum.alivia.features.operations.domain.usecases.GetMyOrdersUseCase
 import com.resolum.alivia.features.operations.domain.usecases.GetOrderUseCase
@@ -11,6 +12,7 @@ import com.resolum.alivia.features.operations.domain.usecases.FindInstallationOf
 import com.resolum.alivia.features.operations.domain.usecases.RecordEvaluationUseCase
 import com.resolum.alivia.features.operations.domain.usecases.RegisterDeviceUseCase
 import com.resolum.alivia.features.operations.domain.usecases.RemoveDeviceUseCase
+import com.resolum.alivia.features.operations.domain.usecases.ResolveIncidentUseCase
 import com.resolum.alivia.features.operations.domain.usecases.StartOrderUseCase
 import com.resolum.alivia.features.shared.di.SharedModule
 
@@ -27,4 +29,6 @@ object OperationsModule {
     fun registerDevice() = RegisterDeviceUseCase(repository)
     fun removeDevice() = RemoveDeviceUseCase(repository)
     fun completeInstallation() = CompleteInstallationUseCase(repository)
+    fun resolveIncident() = ResolveIncidentUseCase(repository)
+    fun advanceIncident() = AdvanceIncidentUseCase(repository)
 }

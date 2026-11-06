@@ -2,6 +2,7 @@ package com.resolum.alivia.features.operations.data.datasources.remote.services
 
 import com.resolum.alivia.features.operations.data.datasources.remote.models.EvaluationResultRequestDto
 import com.resolum.alivia.features.operations.data.datasources.remote.models.InstallationResultRequestDto
+import com.resolum.alivia.features.operations.data.datasources.remote.models.MaintenanceResultRequestDto
 import com.resolum.alivia.features.operations.data.datasources.remote.models.RegisterDeviceRequestDto
 import com.resolum.alivia.features.operations.data.datasources.remote.models.TechnicalOrderDto
 import retrofit2.http.Body
@@ -31,4 +32,13 @@ interface TechnicalOrderService {
 
     @POST("api/v1/technical-orders/{orderId}/installation-result")
     suspend fun recordInstallation(@Path("orderId") orderId: Long, @Body body: InstallationResultRequestDto): TechnicalOrderDto
+
+    @POST("api/v1/technical-orders/{orderId}/incident-evaluation")
+    suspend fun evaluateIncident(@Path("orderId") orderId: Long): TechnicalOrderDto
+
+    @POST("api/v1/technical-orders/{orderId}/visit-confirmation")
+    suspend fun confirmVisit(@Path("orderId") orderId: Long): TechnicalOrderDto
+
+    @POST("api/v1/technical-orders/{orderId}/maintenance-result")
+    suspend fun recordMaintenance(@Path("orderId") orderId: Long, @Body body: MaintenanceResultRequestDto): TechnicalOrderDto
 }

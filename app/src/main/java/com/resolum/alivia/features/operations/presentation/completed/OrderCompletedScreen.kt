@@ -183,6 +183,8 @@ private fun messageOf(order: TechnicalOrder): String = when {
             "El hogar quedó en servicio. Los dispositivos podrán registrarse posteriormente desde la aplicación web."
         else
             "El hogar quedó en servicio con ${order.installedDevices.size} dispositivos. La orden está disponible en tu historial."
+    order.serviceType == ServiceType.MAINTENANCE ->
+        "La incidencia ${order.incident?.code ?: "de la familia"} quedó resuelta; la familia ya la ve cerrada en la web."
     else -> "La orden se ha sincronizado y estará disponible en tu historial."
 }
 

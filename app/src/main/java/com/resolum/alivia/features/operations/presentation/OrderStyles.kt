@@ -23,6 +23,8 @@ import com.resolum.alivia.core.ui.theme.TealSoft
 import com.resolum.alivia.core.ui.theme.Warning
 import com.resolum.alivia.core.ui.theme.WarningSoft
 import com.resolum.alivia.features.operations.domain.models.DeviceType
+import com.resolum.alivia.features.operations.domain.models.IncidentStatus
+import com.resolum.alivia.features.operations.domain.models.TechnicalOrder
 import com.resolum.alivia.features.operations.domain.models.OrderProgress
 import com.resolum.alivia.features.operations.domain.models.ServiceType
 
@@ -77,6 +79,20 @@ fun ProgressPill(progress: OrderProgress, modifier: Modifier = Modifier) {
         OrderProgress.IN_PROGRESS -> Pill(progress.label, WarningSoft, Navy, modifier, dot = Warning)
         OrderProgress.COMPLETED -> Pill(progress.label, TealSoft, TealDark, modifier)
         OrderProgress.CANCELED -> Pill(progress.label, SurfaceMuted, InkMuted, modifier)
+    }
+}
+
+/** The incident stage for maintenance orders (Registrada, En evaluación…), the order progress otherwise. */
+@Composable
+fun OrderStatusPill(order: TechnicalOrder, modifier: Modifier = Modifier) {
+    val status = order.incident?.status
+    if (order.serviceType != ServiceType.MAINTENANCE || status == null) return ProgressPill(order.progress, modifier)
+    when (status) {
+        IncidentStatus.OPEN, IncidentStatus.IN_EVALUATION -> Pill(status.label, WarningSoft, Navy, modifier, dot = Warning)
+        IncidentStatus.SCHEDULED -> Pill(status.label, NavySoft, Navy, modifier)
+        IncidentStatus.IN_PROGRESS -> Pill(status.label, WarningSoft, Navy, modifier, dot = Warning)
+        IncidentStatus.RESOLVED -> Pill(status.label, TealSoft, TealDark, modifier)
+        IncidentStatus.CANCELED -> Pill(status.label, SurfaceMuted, InkMuted, modifier)
     }
 }
 

@@ -13,3 +13,10 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Firebase project configuration is kept local and must not be committed.
+/app/google-services.json
+/firebase-service-account.json
+*.jks
+*.keystore
+/.local-secrets/

@@ -70,7 +70,7 @@ import com.resolum.alivia.core.ui.theme.TealSoft
 import com.resolum.alivia.features.operations.di.OperationsModule
 import com.resolum.alivia.features.operations.domain.models.ServiceType
 import com.resolum.alivia.features.operations.domain.models.TechnicalOrder
-import com.resolum.alivia.features.operations.presentation.ProgressPill
+import com.resolum.alivia.features.operations.presentation.OrderStatusPill
 import com.resolum.alivia.features.operations.presentation.color
 import com.resolum.alivia.features.operations.presentation.icon
 import com.resolum.alivia.features.operations.presentation.label
@@ -258,7 +258,7 @@ fun OrderCard(order: TechnicalOrder, isNext: Boolean, onClick: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (isNext) Pill("SIGUIENTE", TealSoft, TealDark)
                     Spacer(Modifier.weight(1f))
-                    ProgressPill(order.progress)
+                    OrderStatusPill(order)
                 }
                 Text(order.homeName, style = MaterialTheme.typography.titleMedium, color = Navy,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
