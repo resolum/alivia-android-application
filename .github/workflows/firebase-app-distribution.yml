@@ -1,0 +1,107 @@
+name: Firebase App Distribution
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-app-distribution-${{ github.event.pull_request.head.ref }}
+  cancel-in-progress: false
+
+jobs:
+  distribute-release:
+    name: Distribute signed release
+    if: >
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout merged revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Read and validate version from branch
+        id: version
+        env:
+          SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
+        shell: bash
+        run: |
+          VERSION="${SOURCE_BRANCH#release/}"
+          if [[ ! "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::La rama debe llamarse release/x.y.z (por ejemplo release/1.0.0)."
+            exit 1
+          fi
+
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
+          if (( MAJOR > 2000 || MINOR > 999 || PATCH > 999 )); then
+            echo "::error::La versión excede el rango admitido: major <= 2000, minor/patch <= 999."
+            exit 1
+          fi
+
+          VERSION_CODE=$((10#$MAJOR * 1000000 + 10#$MINOR * 1000 + 10#$PATCH))
+          if (( VERSION_CODE < 1 )); then
+            echo "::error::La versión debe producir un versionCode mayor que cero."
+            exit 1
+          fi
+
+          echo "name=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@017a9effdb900e5b5b2fddfb590a105619dca3c3 # v4.4.2
+
+      - name: Restore Firebase and signing credentials
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          test -n "$GOOGLE_SERVICES_JSON"
+          test -n "$FIREBASE_SERVICE_ACCOUNT_JSON"
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase-service-account.json
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > alivia-release.jks
+          chmod 600 app/google-services.json firebase-service-account.json alivia-release.jks
+
+      - name: Build and distribute signed APK
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/firebase-service-account.json
+          ALIVIA_KEYSTORE_PATH: ${{ github.workspace }}/alivia-release.jks
+          ALIVIA_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ALIVIA_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ALIVIA_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          FIREBASE_RELEASE_NOTES: >-
+            Alivia Android ${{ steps.version.outputs.name }} —
+            PR #${{ github.event.pull_request.number }}:
+            ${{ github.event.pull_request.title }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease appDistributionUploadRelease \
+            -PappVersionName="${{ steps.version.outputs.name }}" \
+            -PappVersionCode="${{ steps.version.outputs.code }}" \
+            -PapiBaseUrl="https://alivia-api.azurewebsites.net/"
+
+      - name: Upload signed APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: alivia-${{ steps.version.outputs.name }}-release
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 14

@@ -1,7 +1,17 @@
+import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.app.distribution)
 }
+
+val releaseKeystorePath = providers.environmentVariable("ALIVIA_KEYSTORE_PATH").orNull
+val releaseKeystorePassword = providers.environmentVariable("ALIVIA_KEYSTORE_PASSWORD").orNull
+val releaseKeyAlias = providers.environmentVariable("ALIVIA_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.environmentVariable("ALIVIA_KEY_PASSWORD").orNull
+val apiBaseUrlOverride = providers.gradleProperty("apiBaseUrl").orNull
 
 android {
     namespace = "com.resolum.alivia"
@@ -15,25 +25,50 @@ android {
         applicationId = "com.resolum.alivia"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = providers.gradleProperty("appVersionCode").orNull?.toInt() ?: 1
+        versionName = providers.gradleProperty("appVersionName").orNull ?: "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Backend URL. The emulator reaches the computer's localhost at 10.0.2.2; a physical device needs the
-        // computer's LAN address, e.g. -PapiBaseUrl=http://192.168.1.20:8080/
-        val apiBaseUrl = (project.findProperty("apiBaseUrl") as String?) ?: "http://10.0.2.2:8080/"
-        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+    }
+
+    val ciReleaseSigning = if (
+        releaseKeystorePath != null &&
+        releaseKeystorePassword != null &&
+        releaseKeyAlias != null &&
+        releaseKeyPassword != null
+    ) {
+        signingConfigs.create("ciRelease") {
+            storeFile = file(releaseKeystorePath)
+            storePassword = releaseKeystorePassword
+            keyAlias = releaseKeyAlias
+            keyPassword = releaseKeyPassword
+        }
+    } else {
+        null
     }
 
     buildTypes {
         release {
+            ciReleaseSigning?.let { signingConfig = it }
+            val releaseApiBaseUrl = apiBaseUrlOverride ?: "https://alivia-api.azurewebsites.net/"
+            buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
             // R8 shrinks and obfuscates the release; proguard-rules.pro keeps what Gson reads by reflection.
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+
+            firebaseAppDistribution {
+                artifactType = "APK"
+                testers = "faridce14@gmail.com,sdiaz4519@gmail.com"
+                releaseNotes = providers.environmentVariable("FIREBASE_RELEASE_NOTES").orNull
+                    ?: "Alivia Android ${providers.gradleProperty("appVersionName").orNull ?: "local"}"
+            }
         }
         debug {
+            // The Android emulator reaches the development machine through 10.0.2.2.
+            val debugApiBaseUrl = apiBaseUrlOverride ?: "http://10.0.2.2:8080/"
+            buildConfigField("String", "API_BASE_URL", "\"$debugApiBaseUrl\"")
             // JaCoCo report of the JVM unit tests (createDebugUnitTestCoverageReport), read by SonarCloud.
             enableUnitTestCoverage = true
         }
@@ -50,6 +85,8 @@ android {
 
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
