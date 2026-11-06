@@ -2,6 +2,8 @@
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.google.services) apply false
+    alias(libs.plugins.firebase.app.distribution) apply false
     id("org.sonarqube") version "7.5.0.8588"
 }
 
