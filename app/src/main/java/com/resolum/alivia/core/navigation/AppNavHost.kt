@@ -16,7 +16,9 @@ import androidx.navigation.navArgument
 import com.resolum.alivia.features.iam.di.AuthModule
 import com.resolum.alivia.features.iam.domain.models.Session
 import com.resolum.alivia.features.iam.presentation.LoginScreen
+import com.resolum.alivia.features.iam.presentation.PasswordRecoveryScreen
 import com.resolum.alivia.features.iam.presentation.SplashScreen
+import com.resolum.alivia.features.notifications.presentation.NotificationsScreen
 import com.resolum.alivia.features.operations.presentation.completed.OrderCompletedScreen
 import com.resolum.alivia.features.operations.presentation.detail.OrderDetailScreen
 import com.resolum.alivia.features.operations.presentation.evaluation.EvaluationNext
@@ -31,6 +33,8 @@ object Routes {
     const val SPLASH = "splash"
     const val LOGIN = "login"
     const val MAIN = "main"
+    const val RECOVER_PASSWORD = "recover-password"
+    const val NOTIFICATIONS = "notifications"
     const val ORDER = "order/{orderId}"
     const val EVALUATION = "order/{orderId}/evaluation"
     const val INSTALLATION = "order/{orderId}/installation"
@@ -71,10 +75,19 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             }
         }
         composable(Routes.LOGIN) {
-            LoginScreen(onSignedIn = { signedIn ->
-                session = signedIn
-                navController.navigate(Routes.MAIN) { popUpTo(Routes.LOGIN) { inclusive = true } }
-            })
+            LoginScreen(
+                onSignedIn = { signedIn ->
+                    session = signedIn
+                    navController.navigate(Routes.MAIN) { popUpTo(Routes.LOGIN) { inclusive = true } }
+                },
+                onForgotPassword = { navController.navigate(Routes.RECOVER_PASSWORD) },
+            )
+        }
+        composable(Routes.RECOVER_PASSWORD) {
+            PasswordRecoveryScreen(onClose = { navController.popBackStack() })
+        }
+        composable(Routes.NOTIFICATIONS) {
+            NotificationsScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.MAIN) {
             val current = session
@@ -84,6 +97,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 MainScreen(
                     session = current,
                     onOpenOrder = { navController.navigate(Routes.order(it)) },
+                    onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                     onSignOut = { scope.launch { AuthModule.signOutUseCase()(); goToLogin() } },
                 )
             }

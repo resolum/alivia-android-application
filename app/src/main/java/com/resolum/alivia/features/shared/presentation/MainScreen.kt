@@ -63,11 +63,11 @@ enum class MainTab(val label: String, val icon: ImageVector) {
 
 /** Main navigation of the app, adapted to the role of the signed-in account. */
 @Composable
-fun MainScreen(session: Session, onOpenOrder: (Long) -> Unit, onSignOut: () -> Unit) {
+fun MainScreen(session: Session, onOpenOrder: (Long) -> Unit, onOpenNotifications: () -> Unit, onSignOut: () -> Unit) {
     val technician = session.role == UserRole.TECHNICIAN
     val tabs = MainTab.tabsFor(session.role)
     var tab by rememberSaveable { mutableStateOf(MainTab.HOME) }
-    val openNotifications = { tab = MainTab.PROFILE }
+    val openNotifications = onOpenNotifications
 
     Scaffold(
         containerColor = Background,
