@@ -16,6 +16,7 @@ object ActivityMapper {
         val key = listOfNotNull(dto.assignmentId?.toString(), dto.activity?.id?.toString(), dto.date, dto.startTime).joinToString("-")
         return CareActivity(
             id = key,
+            activityId = dto.activity?.id,
             assignmentId = dto.assignmentId,
             title = nonBlank(dto.activity?.title) ?: "Actividad",
             type = enumOr(dto.activity?.type, CareActivityType.OTHER),
@@ -27,6 +28,8 @@ object ActivityMapper {
             status = enumOr(dto.status, CareActivityStatus.SCHEDULED),
             recurring = dto.recurring ?: false,
             priority = enumOr(dto.priority, CarePriority.ROUTINE),
+            assistedPersonProfileId = dto.assistedPerson?.id,
+            responsibleCaregiverId = dto.responsible?.id?.takeIf { dto.responsible.type == "CAREGIVER" },
         )
     }
 

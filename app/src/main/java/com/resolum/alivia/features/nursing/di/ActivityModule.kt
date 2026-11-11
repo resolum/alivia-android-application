@@ -6,7 +6,11 @@ import com.resolum.alivia.features.nursing.data.datasources.remote.services.Care
 import com.resolum.alivia.features.nursing.data.repositories.ActivityRepositoryImpl
 import com.resolum.alivia.features.nursing.data.repositories.CareNetworkRepositoryImpl
 import com.resolum.alivia.features.nursing.domain.repositories.CareNetworkRepository
+import com.resolum.alivia.features.nursing.domain.usecases.CompleteActivityUseCase
+import com.resolum.alivia.features.nursing.domain.usecases.CreateCareActivityUseCase
 import com.resolum.alivia.features.nursing.domain.usecases.GetAssistedPersonsUseCase
+import com.resolum.alivia.features.nursing.domain.usecases.GetCaregiversUseCase
+import com.resolum.alivia.features.nursing.domain.usecases.NameAgendaPeopleUseCase
 import com.resolum.alivia.features.nursing.domain.usecases.GetCareNetworkUseCase
 import com.resolum.alivia.features.nursing.domain.repositories.ActivityRepository
 import com.resolum.alivia.features.nursing.domain.usecases.GetActivitiesUseCase
@@ -24,4 +28,8 @@ object ActivityModule {
     fun getActivities() = GetActivitiesUseCase(repository)
     fun getAssistedPersons() = GetAssistedPersonsUseCase(careNetworkRepository)
     fun getCareNetwork() = GetCareNetworkUseCase(careNetworkRepository)
+    fun getCaregivers() = GetCaregiversUseCase(careNetworkRepository)
+    fun createActivity() = CreateCareActivityUseCase(careNetworkRepository)
+    fun completeActivity() = CompleteActivityUseCase(careNetworkRepository)
+    fun nameAgendaPeople() = NameAgendaPeopleUseCase(careNetworkRepository)
 }

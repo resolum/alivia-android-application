@@ -6,6 +6,9 @@ import java.time.Period
 /** Person the caregiver looks after, as `/api/v1/assisted-persons` returns them. */
 data class AssistedPerson(
     val id: Long,
+    /** Principal relative; the backend needs it to create activities for this person. */
+    val relativeId: Long?,
+    val personProfileId: Long?,
     val householdId: Long?,
     val firstName: String,
     val lastName: String,
@@ -44,5 +47,8 @@ data class AssistedPerson(
 
 enum class CareRole(val label: String) { PRINCIPAL("Principal"), CAREGIVER("Cuidador"), GUEST("Invitado") }
 
+/** A caregiver assigned to the assisted person; [isMe] marks the signed-in account. */
+data class CareCaregiver(val id: Long, val userId: Long?, val isMe: Boolean, val fullName: String? = null)
+
 /** A member of the home's care network; the backend only gives the account and the role. */
-data class CareNetworkMember(val userId: Long, val role: CareRole)
+data class CareNetworkMember(val userId: Long, val role: CareRole, val fullName: String? = null)

@@ -7,6 +7,9 @@ import java.time.LocalDate
 class GetActivitiesUseCase(private val repository: ActivityRepository) {
     suspend operator fun invoke(today: LocalDate) = repository.agenda(today.minusDays(DAYS_BACK), today.plusDays(DAYS_AHEAD))
 
+    /** Every occurrence between two dates, for the calendar view. */
+    suspend fun between(from: LocalDate, to: LocalDate) = repository.agenda(from, to)
+
     companion object {
         const val DAYS_BACK = 1L
         const val DAYS_AHEAD = 2L

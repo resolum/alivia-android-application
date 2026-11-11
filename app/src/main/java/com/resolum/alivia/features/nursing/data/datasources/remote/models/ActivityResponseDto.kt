@@ -14,6 +14,6 @@ data class ActivityResponseDto(
     val priority: String? = null,
 ) {
     data class ActivityDto(val id: Long? = null, val title: String? = null, val type: String? = null)
-    data class AssistedPersonDto(val name: String? = null)
-    data class ResponsibleDto(val type: String? = null, val name: String? = null, val email: String? = null)
+    data class AssistedPersonDto(val id: Long? = null, val name: String? = null)
+    data class ResponsibleDto(val type: String? = null, val id: Long? = null, val name: String? = null, val email: String? = null)
 }

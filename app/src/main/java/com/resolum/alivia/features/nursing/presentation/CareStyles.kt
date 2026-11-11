@@ -3,6 +3,7 @@ package com.resolum.alivia.features.nursing.presentation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bathtub
 import androidx.compose.material.icons.outlined.Checklist
+import androidx.compose.material.icons.outlined.CleanHands
 import androidx.compose.material.icons.outlined.DirectionsWalk
 import androidx.compose.material.icons.outlined.LocalHospital
 import androidx.compose.material.icons.outlined.Medication
@@ -25,6 +26,7 @@ import com.resolum.alivia.features.nursing.domain.models.CareActivityType
 
 val CareActivityType.icon: ImageVector
     get() = when (this) {
+        CareActivityType.HYGIENE -> Icons.Outlined.CleanHands
         CareActivityType.MEDICATION -> Icons.Outlined.Medication
         CareActivityType.APPOINTMENT -> Icons.Outlined.LocalHospital
         CareActivityType.THERAPY -> Icons.Outlined.SelfImprovement
@@ -33,6 +35,18 @@ val CareActivityType.icon: ImageVector
         @Suppress("DEPRECATION")
         CareActivityType.EXERCISE -> Icons.Outlined.DirectionsWalk
         CareActivityType.OTHER -> Icons.Outlined.Checklist
+    }
+
+val CareActivityType.label: String
+    get() = when (this) {
+        CareActivityType.HYGIENE -> "Higiene"
+        CareActivityType.MEDICATION -> "Medicamento"
+        CareActivityType.APPOINTMENT -> "Cita médica"
+        CareActivityType.THERAPY -> "Terapia"
+        CareActivityType.MEAL -> "Alimentación"
+        CareActivityType.BATH -> "Baño"
+        CareActivityType.EXERCISE -> "Ejercicio"
+        CareActivityType.OTHER -> "Otra"
     }
 
 val CareActivityStatus.label: String
