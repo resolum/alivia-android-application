@@ -5,16 +5,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Assignment
-import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.EventNote
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,43 +24,61 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import com.resolum.alivia.core.ui.theme.Background
 import com.resolum.alivia.core.ui.theme.InkMuted
 import com.resolum.alivia.core.ui.theme.Navy
 import com.resolum.alivia.core.ui.theme.Surface
 import com.resolum.alivia.core.ui.theme.Teal
+import com.resolum.alivia.features.devices.presentation.DevicesScreen
 import com.resolum.alivia.features.iam.domain.models.Session
 import com.resolum.alivia.features.iam.domain.models.UserRole
+import com.resolum.alivia.features.nursing.presentation.activities.ActivitiesScreen
+import com.resolum.alivia.features.nursing.presentation.home.CaregiverHomeScreen
+import com.resolum.alivia.features.operations.presentation.home.TechnicianHomeScreen
 import com.resolum.alivia.features.operations.presentation.orders.OrdersScreen
 import com.resolum.alivia.features.operations.presentation.orders.ScreenHeader
+import com.resolum.alivia.features.operations.presentation.schedule.ScheduleScreen
+import com.resolum.alivia.features.profiles.presentation.ProfileScreen
 
+@Suppress("DEPRECATION")
 enum class MainTab(val label: String, val icon: ImageVector) {
     HOME("Inicio", Icons.Outlined.Home),
     ORDERS("Órdenes", Icons.AutoMirrored.Outlined.Assignment),
     SCHEDULE("Horario", Icons.Outlined.CalendarMonth),
-    PROFILE("Perfil", Icons.Outlined.AccountCircle),
+    ACTIVITIES("Actividades", Icons.Outlined.EventNote),
+    DEVICES("Dispositivos", Icons.Outlined.Sensors),
+    HISTORY("Historial", Icons.Outlined.History),
+    PROFILE("Perfil", Icons.Outlined.AccountCircle);
+
+    companion object {
+        /** Tabs of the bottom bar for each role of the mobile app. */
+        fun tabsFor(role: UserRole): List<MainTab> = if (role == UserRole.TECHNICIAN) {
+            listOf(HOME, ORDERS, SCHEDULE, PROFILE)
+        } else {
+            listOf(HOME, ACTIVITIES, DEVICES, HISTORY, PROFILE)
+        }
+    }
 }
 
-/**
- * Main navigation of the app. For now only Órdenes works; Inicio, Horario and Perfil are placeholders, and
- * Perfil lets the account sign out.
- */
+/** Main navigation of the app, adapted to the role of the signed-in account. */
 @Composable
 fun MainScreen(session: Session, onOpenOrder: (Long) -> Unit, onSignOut: () -> Unit) {
     val technician = session.role == UserRole.TECHNICIAN
-    var tab by rememberSaveable { mutableStateOf(if (technician) MainTab.ORDERS else MainTab.HOME) }
+    val tabs = MainTab.tabsFor(session.role)
+    var tab by rememberSaveable { mutableStateOf(MainTab.HOME) }
+    val openNotifications = { tab = MainTab.PROFILE }
 
     Scaffold(
         containerColor = Background,
         bottomBar = {
             NavigationBar(containerColor = Surface) {
-                MainTab.entries.forEach { item ->
+                tabs.forEach { item ->
                     NavigationBarItem(
                         selected = tab == item,
                         onClick = { tab = item },
                         icon = { Icon(item.icon, contentDescription = null) },
-                        label = { Text(item.label) },
+                        label = { Text(item.label, maxLines = 1, softWrap = false, overflow = TextOverflow.Visible) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Navy,
                             selectedTextColor = Navy,
@@ -75,31 +93,27 @@ fun MainScreen(session: Session, onOpenOrder: (Long) -> Unit, onSignOut: () -> U
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
-                MainTab.ORDERS -> if (technician) {
-                    OrdersScreen(onOpenOrder = onOpenOrder, onOpenProfile = { tab = MainTab.PROFILE })
+                MainTab.HOME -> if (technician) {
+                    TechnicianHomeScreen(
+                        onOpenOrder = onOpenOrder,
+                        onOpenSchedule = { tab = MainTab.SCHEDULE },
+                        onOpenOrders = { tab = MainTab.ORDERS },
+                        onOpenNotifications = openNotifications,
+                    )
                 } else {
-                    ComingSoon(Icons.AutoMirrored.Outlined.Assignment, "Órdenes", "Aquí verás las visitas técnicas de tu hogar.")
+                    CaregiverHomeScreen(onOpenActivities = { tab = MainTab.ACTIVITIES }, onOpenNotifications = openNotifications)
                 }
-                MainTab.HOME -> {
-                    ScreenHeader(title = "Inicio", subtitle = null, onOpenProfile = { tab = MainTab.PROFILE },
-                        overline = if (technician) "Técnico en campo · Alivia" else "Alivia")
-                    ComingSoon(Icons.Outlined.Home, "Muy pronto", "Esta sección estará disponible en una próxima versión.")
+                MainTab.ORDERS -> OrdersScreen(onOpenOrder = onOpenOrder, onOpenProfile = openNotifications)
+                MainTab.SCHEDULE -> ScheduleScreen(onOpenProfile = openNotifications)
+                MainTab.ACTIVITIES -> ActivitiesScreen(onOpenNotifications = openNotifications)
+                MainTab.DEVICES -> DevicesScreen(onOpenNotifications = openNotifications)
+                MainTab.HISTORY -> {
+                    ScreenHeader(title = "Historial", subtitle = null, onOpenProfile = openNotifications)
+                    ComingSoon(Icons.Outlined.History, "Muy pronto",
+                        "Aquí verás los eventos del hogar: comandos de voz, actividades y alertas.")
                 }
-                MainTab.SCHEDULE -> {
-                    ScreenHeader(title = "Horario", subtitle = null, onOpenProfile = { tab = MainTab.PROFILE })
-                    ComingSoon(Icons.Outlined.CalendarMonth, "Muy pronto", "Esta sección estará disponible en una próxima versión.")
-                }
-                MainTab.PROFILE -> {
-                    ScreenHeader(title = "Perfil", subtitle = session.email, onOpenProfile = {})
-                    ComingSoon(Icons.Outlined.AccountCircle, session.email,
-                        if (technician) "Cuenta de técnico" else "Cuenta de cuidador", Modifier.weight(1f))
-                    OutlinedButton(onClick = onSignOut, modifier = Modifier.padding(24.dp)) {
-                        Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = null)
-                        Text("  Cerrar sesión", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
+                MainTab.PROFILE -> ProfileScreen(session = session, onSignOut = onSignOut)
             }
         }
     }
 }
-
