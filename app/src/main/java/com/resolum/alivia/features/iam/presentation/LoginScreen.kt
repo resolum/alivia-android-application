@@ -25,8 +25,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -51,6 +53,7 @@ import com.resolum.alivia.features.iam.domain.models.Session
 @Composable
 fun LoginScreen(
     onSignedIn: (Session) -> Unit,
+    onForgotPassword: () -> Unit = {},
     viewModel: LoginViewModel = viewModel { LoginViewModel(AuthModule.signInUseCase()) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -113,7 +116,9 @@ fun LoginScreen(
             colors = fieldColors,
             modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(Modifier.height(16.dp))
+        TextButton(onClick = onForgotPassword, modifier = Modifier.align(Alignment.End)) {
+            Text("¿Olvidaste tu contraseña?", style = MaterialTheme.typography.labelMedium, color = Navy)
+        }
         state.error?.let { ErrorBanner(it) }
         Spacer(Modifier.height(8.dp))
         PrimaryButton(
