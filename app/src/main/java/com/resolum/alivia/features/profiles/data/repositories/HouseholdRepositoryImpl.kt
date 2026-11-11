@@ -10,7 +10,12 @@ class HouseholdRepositoryImpl(private val service: HouseholdService) : BaseRepos
     override suspend fun mine(): NetworkResult<Household?> = when (val result = safeCall { service.mine() }) {
         is NetworkResult.Success -> NetworkResult.Success(
             result.data.id?.let { id ->
-                Household(id, result.data.alias?.trim()?.ifEmpty { null } ?: "Mi hogar", result.data.formattedAddress?.trim()?.ifEmpty { null })
+                Household(
+                    id,
+                    result.data.alias?.trim()?.ifEmpty { null } ?: "Mi hogar",
+                    result.data.formattedAddress?.trim()?.ifEmpty { null },
+                    result.data.members.orEmpty().firstOrNull { it.status == null || it.status == "ACTIVE" }?.responsibility,
+                )
             },
         )
         is NetworkResult.Error -> if (result.code == 404) NetworkResult.Success(null) else result

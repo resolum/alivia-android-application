@@ -110,11 +110,12 @@ fun CareNetworkCard(members: List<CareNetworkMember>, person: AssistedPerson?, o
             Text("Todavía no hay otras personas en la red de cuidado.", style = MaterialTheme.typography.bodyMedium, color = InkMuted)
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                val principal = principalName(person)
+                val principal = members.firstOrNull { it.role == CareRole.PRINCIPAL }?.fullName ?: principalName(person)
                 Box(Modifier.width((40 + 28 * (minOf(members.size, 3) - 1)).dp)) {
                     members.take(3).forEachIndexed { index, member ->
                         val text = when {
                             index == 2 && members.size > 3 -> "+${members.size - 2}"
+                            member.fullName != null -> initialsOf(member.fullName)
                             member.role == CareRole.PRINCIPAL && principal != null -> initialsOf(principal)
                             else -> ""
                         }
@@ -161,7 +162,7 @@ fun AssistedPersonCard(person: AssistedPerson?, household: Household?, today: Lo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CareNetworkSheet(members: List<CareNetworkMember>, person: AssistedPerson?, onDismiss: () -> Unit) {
+fun CareNetworkSheet(members: List<CareNetworkMember>, person: AssistedPerson?, myFullName: String?, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Surface) {
         Column(
@@ -192,15 +193,25 @@ fun CareNetworkSheet(members: List<CareNetworkMember>, person: AssistedPerson?, 
                 AliviaCard {
                     group.forEachIndexed { index, _ ->
                         if (index > 0) HorizontalDivider(color = Outline)
-                        val name = if (role == CareRole.PRINCIPAL) principalName(person) else null
+                        val name = group[index].fullName ?: if (role == CareRole.PRINCIPAL) principalName(person) else null
+                        val isMe = name != null && name == myFullName
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            InitialsAvatar(name?.let(::initialsOf).orEmpty(), 36)
-                            Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                                Text(name ?: "${role.label} ${index + 1}", style = MaterialTheme.typography.titleSmall, color = Navy)
-                                Text(if (role == CareRole.PRINCIPAL) "Familiar responsable" else role.label,
-                                    style = MaterialTheme.typography.bodySmall, color = InkMuted)
+                            InitialsAvatar(name?.let(::initialsOf).orEmpty(), 40, if (isMe) TealSoft else NavySoft)
+                            Column(Modifier.weight(1f).padding(start = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(name ?: "${role.label} ${index + 1}", style = MaterialTheme.typography.titleSmall, color = Navy)
+                                    if (isMe) Pill("Tú", TealSoft, TealDark)
+                                }
+                                Text(
+                                    when (role) {
+                                        CareRole.PRINCIPAL -> "Familiar responsable · Principal"
+                                        CareRole.CAREGIVER -> "Cuidador de ${person?.firstName ?: "la persona asistida"}"
+                                        CareRole.GUEST -> "Acceso de solo lectura"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall, color = InkMuted,
+                                )
                             }
-                            Text("Vinculado", style = MaterialTheme.typography.labelMedium, color = TealDark)
+                            Pill("Vinculado", TealSoft, TealDark, dot = TealDark)
                         }
                     }
                 }

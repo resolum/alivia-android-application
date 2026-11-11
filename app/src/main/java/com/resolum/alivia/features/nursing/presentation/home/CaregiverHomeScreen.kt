@@ -117,7 +117,7 @@ fun CaregiverHomeScreen(
     }
 
     when (sheet) {
-        HomeSheet.NETWORK -> CareNetworkSheet(state.network, state.assistedPerson, onDismiss = { sheet = null })
+        HomeSheet.NETWORK -> CareNetworkSheet(state.network, state.assistedPerson, state.myFullName, onDismiss = { sheet = null })
         HomeSheet.PERSON -> state.assistedPerson?.let {
             AssistedPersonSheet(it, state.household, state.today, onDismiss = { sheet = null })
         }

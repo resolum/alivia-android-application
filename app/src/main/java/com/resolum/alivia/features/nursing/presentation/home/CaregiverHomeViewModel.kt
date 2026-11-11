@@ -30,6 +30,8 @@ data class CaregiverHomeUiState(
     val error: String? = null,
     val today: LocalDate = Formats.today(),
     val firstName: String? = null,
+    /** Full name of the signed-in caregiver, to mark them as "Tú" in the care network. */
+    val myFullName: String? = null,
     val household: Household? = null,
     val activities: List<CareActivity> = emptyList(),
     val assistedPerson: AssistedPerson? = null,
@@ -75,12 +77,16 @@ class CaregiverHomeViewModel(
             val profile = async { getProfile() }
             val household = async { getHousehold() }
             val persons = async { getAssistedPersons() }
-            val name = (profile.await() as? NetworkResult.Success)?.data?.firstName?.ifBlank { null }
+            val me = (profile.await() as? NetworkResult.Success)?.data
+            val name = me?.firstName?.ifBlank { null }
             val home = (household.await() as? NetworkResult.Success)?.data
             val person = (persons.await() as? NetworkResult.Success)?.data?.firstOrNull()
+            // The assisted person's own account is a household member too; the card already shows them apart.
             val network = (person?.householdId ?: home?.id)?.let { id -> (getCareNetwork(id) as? NetworkResult.Success)?.data }
+                ?.filterNot { member -> person != null && member.fullName != null && member.fullName == person.fullName }
             _state.update {
-                it.copy(assistedPerson = person ?: it.assistedPerson, network = network ?: it.network)
+                it.copy(assistedPerson = person ?: it.assistedPerson, network = network ?: it.network,
+                    myFullName = me?.fullName?.ifBlank { null } ?: it.myFullName)
             }
             when (val result = activities.await()) {
                 is NetworkResult.Success -> _state.update {
