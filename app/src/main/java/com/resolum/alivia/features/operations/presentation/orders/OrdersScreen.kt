@@ -2,6 +2,8 @@ package com.resolum.alivia.features.operations.presentation.orders
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,7 +30,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.EventAvailable
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -171,12 +173,23 @@ fun ScreenHeader(title: String, subtitle: String?, onOpenProfile: () -> Unit, ov
             Text(title, style = MaterialTheme.typography.headlineSmall, color = Navy)
             if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = InkMuted)
         }
+        NotificationsButton(onClick = onOpenProfile)
+    }
+}
+
+/** Round bell of the headers, with the unread marker of the designs. */
+@Composable
+fun NotificationsButton(onClick: () -> Unit) {
+    Box(Modifier.size(44.dp)) {
         IconButton(
-            onClick = onOpenProfile,
-            modifier = Modifier.size(44.dp).clip(CircleShape).background(Navy),
+            onClick = onClick,
+            modifier = Modifier.size(44.dp).shadow(2.dp, CircleShape).clip(CircleShape).background(Surface),
         ) {
-            Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = Color.White)
+            Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones", tint = Navy)
         }
+        // Unread marker, as the designs show it.
+        Box(Modifier.align(Alignment.TopEnd).padding(top = 9.dp, end = 9.dp).size(9.dp).clip(CircleShape)
+            .background(TealDark).border(1.5.dp, Surface, CircleShape))
     }
 }
 
