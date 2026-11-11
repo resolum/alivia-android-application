@@ -19,6 +19,7 @@ import com.resolum.alivia.features.iam.presentation.LoginScreen
 import com.resolum.alivia.features.iam.presentation.PasswordRecoveryScreen
 import com.resolum.alivia.features.iam.presentation.SplashScreen
 import com.resolum.alivia.features.notifications.presentation.NotificationsScreen
+import com.resolum.alivia.features.nursing.presentation.create.NewActivityScreen
 import com.resolum.alivia.features.operations.presentation.completed.OrderCompletedScreen
 import com.resolum.alivia.features.operations.presentation.detail.OrderDetailScreen
 import com.resolum.alivia.features.operations.presentation.evaluation.EvaluationNext
@@ -35,6 +36,7 @@ object Routes {
     const val MAIN = "main"
     const val RECOVER_PASSWORD = "recover-password"
     const val NOTIFICATIONS = "notifications"
+    const val NEW_ACTIVITY = "activities/new"
     const val ORDER = "order/{orderId}"
     const val EVALUATION = "order/{orderId}/evaluation"
     const val INSTALLATION = "order/{orderId}/installation"
@@ -86,6 +88,9 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
         composable(Routes.RECOVER_PASSWORD) {
             PasswordRecoveryScreen(onClose = { navController.popBackStack() })
         }
+        composable(Routes.NEW_ACTIVITY) {
+            NewActivityScreen(onClose = { navController.popBackStack() })
+        }
         composable(Routes.NOTIFICATIONS) {
             NotificationsScreen(onBack = { navController.popBackStack() })
         }
@@ -98,6 +103,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                     session = current,
                     onOpenOrder = { navController.navigate(Routes.order(it)) },
                     onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                    onNewActivity = { navController.navigate(Routes.NEW_ACTIVITY) },
                     onSignOut = { scope.launch { AuthModule.signOutUseCase()(); goToLogin() } },
                 )
             }

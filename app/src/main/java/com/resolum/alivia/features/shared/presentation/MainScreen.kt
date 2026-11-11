@@ -63,7 +63,13 @@ enum class MainTab(val label: String, val icon: ImageVector) {
 
 /** Main navigation of the app, adapted to the role of the signed-in account. */
 @Composable
-fun MainScreen(session: Session, onOpenOrder: (Long) -> Unit, onOpenNotifications: () -> Unit, onSignOut: () -> Unit) {
+fun MainScreen(
+    session: Session,
+    onOpenOrder: (Long) -> Unit,
+    onOpenNotifications: () -> Unit,
+    onNewActivity: () -> Unit,
+    onSignOut: () -> Unit,
+) {
     val technician = session.role == UserRole.TECHNICIAN
     val tabs = MainTab.tabsFor(session.role)
     var tab by rememberSaveable { mutableStateOf(MainTab.HOME) }
@@ -105,7 +111,7 @@ fun MainScreen(session: Session, onOpenOrder: (Long) -> Unit, onOpenNotification
                 }
                 MainTab.ORDERS -> OrdersScreen(onOpenOrder = onOpenOrder, onOpenProfile = openNotifications)
                 MainTab.SCHEDULE -> ScheduleScreen(onOpenProfile = openNotifications)
-                MainTab.ACTIVITIES -> ActivitiesScreen(onOpenNotifications = openNotifications)
+                MainTab.ACTIVITIES -> ActivitiesScreen(onOpenNotifications = openNotifications, onNewActivity = onNewActivity)
                 MainTab.DEVICES -> DevicesScreen(onOpenNotifications = openNotifications)
                 MainTab.HISTORY -> {
                     ScreenHeader(title = "Historial", subtitle = null, onOpenProfile = openNotifications)
