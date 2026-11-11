@@ -10,9 +10,10 @@ import java.util.Locale
 /** Dates and times in Peruvian Spanish, as the designs show them ("Hoy, 24 de octubre · 9:00 a. m."). */
 object Formats {
     val locale: Locale = Locale.forLanguageTag("es-PE")
-    private val zone: ZoneId = ZoneId.of("America/Lima")
+    val zone: ZoneId = ZoneId.of("America/Lima")
     private val dayMonth = DateTimeFormatter.ofPattern("d 'de' MMMM", locale)
     private val weekdayDayMonth = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", locale)
+    private val weekdayCommaDayMonth = DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", locale)
     private val time = DateTimeFormatter.ofPattern("h:mm a", locale)
     private val monthYear = DateTimeFormatter.ofPattern("MMMM yyyy", locale)
     private val shortDay = DateTimeFormatter.ofPattern("d MMM", locale)
@@ -30,6 +31,16 @@ object Formats {
         today.minusDays(1) -> "Ayer, ${date.format(dayMonth)}"
         else -> date.format(weekdayDayMonth).replaceFirstChar { it.titlecase(locale) }
     }
+
+    /** "LUN", "MAR"… for the day badges of the schedule. */
+    fun shortWeekday(date: LocalDate): String =
+        date.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale).trimEnd('.').uppercase(locale)
+
+    /** "9 nov." for date ranges. */
+    fun shortDate(date: LocalDate): String = date.format(shortDay)
+
+    /** "Jueves, 24 de octubre" for the greeting of the home screen. */
+    fun longDay(date: LocalDate): String = date.format(weekdayCommaDayMonth).replaceFirstChar { it.titlecase(locale) }
 
     fun monthYear(date: LocalDate): String = date.format(monthYear).replaceFirstChar { it.titlecase(locale) }
 
