@@ -70,11 +70,13 @@ jobs:
           GOOGLE_SERVICES_JSON: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          PRODUCTION_API_BASE_URL: ${{ secrets.PRODUCTION_API_BASE_URL }}
         shell: bash
         run: |
           test -n "$GOOGLE_SERVICES_JSON"
           test -n "$FIREBASE_SERVICE_ACCOUNT_JSON"
           test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$PRODUCTION_API_BASE_URL"
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase-service-account.json
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > alivia-release.jks
@@ -87,6 +89,7 @@ jobs:
           ALIVIA_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ALIVIA_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ALIVIA_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          PRODUCTION_API_BASE_URL: ${{ secrets.PRODUCTION_API_BASE_URL }}
           FIREBASE_RELEASE_NOTES: >-
             Alivia Android ${{ steps.version.outputs.name }} —
             PR #${{ github.event.pull_request.number }}:
@@ -96,7 +99,7 @@ jobs:
           ./gradlew assembleRelease appDistributionUploadRelease \
             -PappVersionName="${{ steps.version.outputs.name }}" \
             -PappVersionCode="${{ steps.version.outputs.code }}" \
-            -PapiBaseUrl="https://alivia-api.azurewebsites.net/"
+            -PapiBaseUrl="$PRODUCTION_API_BASE_URL"
 
       - name: Upload signed APK as workflow artifact
         uses: actions/upload-artifact@v4

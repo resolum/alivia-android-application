@@ -51,7 +51,7 @@ android {
     buildTypes {
         release {
             ciReleaseSigning?.let { signingConfig = it }
-            val releaseApiBaseUrl = apiBaseUrlOverride ?: "https://alivia-api.azurewebsites.net/"
+            val releaseApiBaseUrl = apiBaseUrlOverride ?: "https://invalid.invalid/"
             buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
             // R8 shrinks and obfuscates the release; proguard-rules.pro keeps what Gson reads by reflection.
             isMinifyEnabled = true
