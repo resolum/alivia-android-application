@@ -16,7 +16,7 @@ data class AppNotification(
     val isAlert: Boolean get() = type in ALERT_TYPES
 
     companion object {
-        val ALERT_TYPES = setOf("ACTUATOR_FAILURE", "LOW_BATTERY", "EDGE_DISCONNECTED", "HELP_REQUEST_DELAYED", "PAYMENT_FAILED")
+        val ALERT_TYPES = setOf("HELP_REQUESTED", "ACTUATOR_FAILURE", "LOW_BATTERY", "EDGE_DISCONNECTED", "HELP_REQUEST_DELAYED", "PAYMENT_FAILED")
     }
 }
 
