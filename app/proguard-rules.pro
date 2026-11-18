@@ -2,6 +2,9 @@
 
 # Gson builds the backend DTOs by reflection: keep their names, fields and constructors.
 -keep class com.resolum.alivia.features.**.data.datasources.remote.models.** { *; }
+# DTOs declared next to their Retrofit service (for example the push device registration): Gson reads and writes
+# their field names, so they must not be renamed either.
+-keep class com.resolum.alivia.features.**Dto { *; }
 -keepclassmembers,allowobfuscation class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }

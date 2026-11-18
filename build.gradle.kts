@@ -24,7 +24,7 @@ sonar {
             "${project.projectDir}/app/build/reports/coverage/test/debug/report.xml"
         )
         // Compose screens, theme, navigation, DI wiring and the Android glue (DataStore, Retrofit/OkHttp
-        // construction) are not reachable from JVM unit tests; the rules they use are tested where they live.
+        // construction, Firebase messaging service) are not reachable from JVM unit tests; the rules they use are tested where they live.
         property(
             "sonar.coverage.exclusions",
             listOf(
@@ -36,6 +36,7 @@ sonar {
                 "**/AliviaApplication.kt",
                 "**/datastore/TokenDataStore.kt",
                 "**/remote/ApiClientFactory.kt",
+                "**/notifications/push/**",
             ).joinToString(",")
         )
     }
