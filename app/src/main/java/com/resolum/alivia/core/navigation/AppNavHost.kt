@@ -18,6 +18,8 @@ import com.resolum.alivia.features.iam.domain.models.Session
 import com.resolum.alivia.features.iam.presentation.LoginScreen
 import com.resolum.alivia.features.iam.presentation.PasswordRecoveryScreen
 import com.resolum.alivia.features.iam.presentation.SplashScreen
+import com.resolum.alivia.features.notifications.di.NotificationsModule
+import com.resolum.alivia.features.notifications.presentation.NotificationPermissionRequest
 import com.resolum.alivia.features.notifications.presentation.NotificationsScreen
 import com.resolum.alivia.features.nursing.presentation.create.NewActivityScreen
 import com.resolum.alivia.features.operations.presentation.completed.OrderCompletedScreen
@@ -29,6 +31,7 @@ import com.resolum.alivia.features.operations.presentation.maintenance.ResolveIn
 import com.resolum.alivia.features.shared.di.SharedModule
 import com.resolum.alivia.features.shared.presentation.MainScreen
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 object Routes {
     const val SPLASH = "splash"
@@ -99,12 +102,21 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             if (current == null) {
                 LaunchedEffect(Unit) { goToLogin() }
             } else {
+                NotificationPermissionRequest()
+                LaunchedEffect(current) { NotificationsModule.registerPushDevice()() }
                 MainScreen(
                     session = current,
                     onOpenOrder = { navController.navigate(Routes.order(it)) },
                     onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                     onNewActivity = { navController.navigate(Routes.NEW_ACTIVITY) },
-                    onSignOut = { scope.launch { AuthModule.signOutUseCase()(); goToLogin() } },
+                    onSignOut = {
+                        scope.launch {
+                            // While the session is still valid, so this device stops getting the account's notifications.
+                            withTimeoutOrNull(3_000) { NotificationsModule.unregisterPushDevice()() }
+                            AuthModule.signOutUseCase()()
+                            goToLogin()
+                        }
+                    },
                 )
             }
         }

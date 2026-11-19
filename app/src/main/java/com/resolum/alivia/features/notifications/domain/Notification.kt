@@ -13,7 +13,11 @@ data class AppNotification(
     val createdAt: LocalDateTime?,
 ) {
     /** Failures and disconnections show as alerts; the rest as information. */
-    val isAlert: Boolean get() = type in setOf("ACTUATOR_FAILURE", "LOW_BATTERY", "EDGE_DISCONNECTED", "HELP_REQUEST_DELAYED", "PAYMENT_FAILED")
+    val isAlert: Boolean get() = type in ALERT_TYPES
+
+    companion object {
+        val ALERT_TYPES = setOf("HELP_REQUESTED", "ACTUATOR_FAILURE", "LOW_BATTERY", "EDGE_DISCONNECTED", "HELP_REQUEST_DELAYED", "PAYMENT_FAILED")
+    }
 }
 
 interface NotificationRepository {
