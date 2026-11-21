@@ -49,7 +49,14 @@ data class PushMessage(
     val title: String,
     val body: String?,
     val isAlert: Boolean,
+    val type: String? = null,
 ) {
+    /** A reminder of the agenda, shown on its own channel so it is not taken for an alert. */
+    val isReminder: Boolean get() = type == "CARE_ACTIVITY_REMINDER"
+
+    /** The agenda may have changed: a new or reassigned activity, or a reminder of one. */
+    val touchesAgenda: Boolean get() = type in AGENDA_TYPES
+
     companion object {
         /**
          * Reads the message the backend sends: the visible title and body, and the data
@@ -60,6 +67,9 @@ data class PushMessage(
             title = title?.trim()?.ifEmpty { null } ?: data["title"]?.trim()?.ifEmpty { null } ?: "Notificación",
             body = body?.trim()?.ifEmpty { null } ?: data["body"]?.trim()?.ifEmpty { null },
             isAlert = data["type"] in AppNotification.ALERT_TYPES,
+            type = data["type"]?.trim()?.ifEmpty { null },
         )
+
+        private val AGENDA_TYPES = setOf("ASSIGNMENT_CREATED", "CARE_ACTIVITY_REMINDER")
     }
 }

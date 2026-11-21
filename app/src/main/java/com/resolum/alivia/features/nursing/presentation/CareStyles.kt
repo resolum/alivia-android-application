@@ -23,6 +23,7 @@ import com.resolum.alivia.core.ui.theme.Warning
 import com.resolum.alivia.core.ui.theme.WarningSoft
 import com.resolum.alivia.features.nursing.domain.models.CareActivityStatus
 import com.resolum.alivia.features.nursing.domain.models.CareActivityType
+import com.resolum.alivia.features.nursing.domain.models.CarePriority
 
 val CareActivityType.icon: ImageVector
     get() = when (this) {
@@ -47,6 +48,14 @@ val CareActivityType.label: String
         CareActivityType.BATH -> "Baño"
         CareActivityType.EXERCISE -> "Ejercicio"
         CareActivityType.OTHER -> "Otra"
+    }
+
+val CarePriority.label: String
+    get() = when (this) {
+        CarePriority.HIGH -> "Alta"
+        CarePriority.MEDIUM -> "Media"
+        CarePriority.LOW -> "Baja"
+        CarePriority.ROUTINE -> "Rutina"
     }
 
 val CareActivityStatus.label: String

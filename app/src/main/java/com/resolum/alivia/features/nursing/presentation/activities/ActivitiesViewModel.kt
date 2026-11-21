@@ -5,12 +5,21 @@ import androidx.lifecycle.viewModelScope
 import com.resolum.alivia.core.ui.format.Formats
 import com.resolum.alivia.features.nursing.domain.models.CareActivity
 import com.resolum.alivia.features.nursing.domain.models.CareActivityStatus
+import com.resolum.alivia.features.nursing.domain.models.CareActivityType
+import com.resolum.alivia.features.nursing.domain.models.MedicationAdministration
+import com.resolum.alivia.features.nursing.domain.models.MedicationResult
 import com.resolum.alivia.features.nursing.domain.usecases.CompleteActivityUseCase
+import com.resolum.alivia.features.nursing.domain.usecases.GetMedicationAdministrationUseCase
+import com.resolum.alivia.features.nursing.domain.usecases.MedicationRecord
+import com.resolum.alivia.features.nursing.domain.usecases.RecordMedicationOutcomeUseCase
+import com.resolum.alivia.features.nursing.reminders.AgendaChange
 import com.resolum.alivia.features.nursing.domain.usecases.GetActivitiesUseCase
 import com.resolum.alivia.features.nursing.domain.usecases.NameAgendaPeopleUseCase
 import com.resolum.alivia.features.profiles.domain.usecases.GetMyHouseholdUseCase
 import com.resolum.alivia.features.shared.data.datasources.remote.NetworkResult
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +32,20 @@ import java.time.YearMonth
 enum class ActivityGroupKind(val title: String) { TODAY("Hoy"), TOMORROW("Mañana"), UPCOMING("Pasado mañana"), PAST("Ayer") }
 
 enum class ActivitiesView { LIST, CALENDAR }
+
+/** The record screen of one dose: its current result, or the actions to confirm or omit it. */
+data class MedicationRecordState(
+    val loading: Boolean = true,
+    val administration: MedicationAdministration? = null,
+    val saving: Boolean = false,
+    val error: String? = null,
+    /** The account may not record this dose: the actions are hidden and nothing is sent. */
+    val forbidden: Boolean = false,
+    /** Set right after this screen saved the result, to confirm it. */
+    val justRecorded: Boolean = false,
+    /** A second confirmation was attempted and the existing result is shown instead. */
+    val duplicate: Boolean = false,
+)
 
 data class ActivityGroup(val kind: ActivityGroupKind, val activities: List<CareActivity>)
 
@@ -42,6 +65,9 @@ data class ActivitiesUiState(
     val completeError: String? = null,
     /** Only the principal relative creates activities; the rest only follow them. */
     val canCreate: Boolean = false,
+    val medication: MedicationRecordState? = null,
+    /** What changed in the agenda since the last visit (reassignments), until dismissed. */
+    val agendaChange: AgendaChange? = null,
 ) {
     /** Hoy, Mañana, Pasado mañana and Ayer, skipping the empty ones; Ayer runs from the most recent. */
     val groups: List<ActivityGroup>
@@ -77,17 +103,33 @@ fun CareActivity.canComplete(now: LocalDateTime): Boolean {
     return !now.isBefore(start) && (end == null || !now.isAfter(end))
 }
 
+/** Who may record the result of a dose: its responsible, or the principal relative of the home. */
+fun CareActivity.canRecordMedication(isPrincipalRelative: Boolean): Boolean =
+    type == CareActivityType.MEDICATION && assignmentId != null && (mine || isPrincipalRelative)
+
 class ActivitiesViewModel(
     private val getActivities: GetActivitiesUseCase,
     private val completeActivity: CompleteActivityUseCase,
     private val namePeople: NameAgendaPeopleUseCase,
     private val getHousehold: GetMyHouseholdUseCase,
+    private val getMedication: GetMedicationAdministrationUseCase? = null,
+    private val recordMedication: RecordMedicationOutcomeUseCase? = null,
+    /** Replaces the local reminders with the loaded agenda and tells what changed. */
+    private val syncReminders: (List<CareActivity>) -> AgendaChange = { AgendaChange() },
+    private val onDoseRecorded: (CareActivity) -> Unit = {},
+    agendaChanged: Flow<Unit> = emptyFlow(),
 ) : ViewModel() {
     private val _state = MutableStateFlow(ActivitiesUiState())
     val state: StateFlow<ActivitiesUiState> = _state.asStateFlow()
 
     private var loadJob: Job? = null
     private var monthJob: Job? = null
+    private var medicationJob: Job? = null
+
+    init {
+        // A reassignment pushed by the backend refreshes the agenda that is on screen.
+        viewModelScope.launch { agendaChanged.collect { load(refresh = true) } }
+    }
 
     /** Loads the agenda again; the list stays visible meanwhile, and a running load is reused unless pulling. */
     fun load(refresh: Boolean = false) {
@@ -102,7 +144,11 @@ class ActivitiesViewModel(
             when (val result = getActivities(today)) {
                 is NetworkResult.Success -> {
                     val named = namePeople(result.data)
-                    _state.update { it.copy(loading = false, refreshing = false, activities = named) }
+                    val change = runCatching { syncReminders(named) }.getOrNull()
+                    _state.update {
+                        it.copy(loading = false, refreshing = false, activities = named,
+                            agendaChange = if (change == null || change.isEmpty) it.agendaChange else change)
+                    }
                 }
                 is NetworkResult.Error -> _state.update { it.copy(loading = false, refreshing = false, error = result.message) }
             }
@@ -140,7 +186,52 @@ class ActivitiesViewModel(
         }
     }
 
-    fun open(activity: CareActivity?) = _state.update { it.copy(selected = activity, completeError = null) }
+    fun open(activity: CareActivity?) {
+        medicationJob?.cancel()
+        val medication = activity?.takeIf { it.type == CareActivityType.MEDICATION && it.assignmentId != null }
+        _state.update { it.copy(selected = activity, completeError = null, medication = medication?.let { MedicationRecordState() }) }
+        if (medication != null) loadMedication(medication)
+    }
+
+    fun dismissAgendaChange() = _state.update { it.copy(agendaChange = null) }
+
+    private fun loadMedication(activity: CareActivity) {
+        val useCase = getMedication ?: return
+        medicationJob = viewModelScope.launch {
+            val result = useCase(activity)
+            _state.update { state ->
+                if (state.selected?.id != activity.id) return@update state
+                state.copy(medication = when (result) {
+                    is NetworkResult.Success -> MedicationRecordState(loading = false, administration = result.data)
+                    is NetworkResult.Error -> MedicationRecordState(loading = false, error = result.message, forbidden = result.code == 403)
+                })
+            }
+        }
+    }
+
+    /** Confirms or omits the open dose; a second tap while saving, or a dose that already has a result, records nothing. */
+    fun recordMedication(result: MedicationResult, reason: String? = null) {
+        val activity = _state.value.selected ?: return
+        val current = _state.value.medication ?: return
+        val useCase = recordMedication ?: return
+        if (current.saving || current.administration?.pending == false) return
+        _state.update { it.copy(medication = current.copy(saving = true, error = null)) }
+        viewModelScope.launch {
+            val record = useCase(activity, result, reason)
+            _state.update { state ->
+                val medication = state.medication ?: return@update state
+                state.copy(medication = when (record) {
+                    is MedicationRecord.Recorded -> medication.copy(saving = false, administration = record.administration, justRecorded = true)
+                    is MedicationRecord.AlreadyRecorded -> medication.copy(saving = false, administration = record.administration, duplicate = true)
+                    is MedicationRecord.Rejected -> medication.copy(saving = false, error = record.message, forbidden = record.forbidden)
+                })
+            }
+            if (record !is MedicationRecord.Rejected) {
+                onDoseRecorded(activity)
+                load(refresh = true)
+            }
+        }
+    }
 
     fun complete() {
         val activity = _state.value.selected ?: return
