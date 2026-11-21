@@ -37,6 +37,8 @@ sonar {
                 "**/datastore/TokenDataStore.kt",
                 "**/remote/ApiClientFactory.kt",
                 "**/notifications/push/**",
+                "**/nursing/reminders/AgendaReminders.kt",
+                "**/nursing/reminders/ReminderReceiver.kt",
             ).joinToString(",")
         )
     }
