@@ -14,6 +14,8 @@ import com.resolum.alivia.MainActivity
 import com.resolum.alivia.R
 import com.resolum.alivia.features.notifications.di.NotificationsModule
 import com.resolum.alivia.features.notifications.domain.PushMessage
+import com.resolum.alivia.features.nursing.di.ActivityModule
+import com.resolum.alivia.features.nursing.reminders.AgendaReminders
 import com.resolum.alivia.features.shared.di.SharedModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +41,11 @@ class AliviaMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         val push = PushMessage.from(message.notification?.title, message.notification?.body, message.data)
+        if (push.touchesAgenda) {
+            // A reassignment changes who gets the reminders: refresh the open agenda and the local alarms.
+            AgendaReminders.notifyAgendaChanged()
+            scope.launch { runCatching { ActivityModule.syncReminders() } }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
@@ -52,9 +59,14 @@ class AliviaMessagingService : FirebaseMessagingService() {
         )
         val notification = NotificationCompat.Builder(
             this,
-            if (push.isAlert) PushNotificationChannels.ALERTS else PushNotificationChannels.NOTIFICATIONS,
+            when {
+                push.isAlert -> PushNotificationChannels.ALERTS
+                push.isReminder -> PushNotificationChannels.REMINDERS
+                else -> PushNotificationChannels.NOTIFICATIONS
+            },
         )
             .setSmallIcon(R.drawable.ic_launcher_monochrome)
+            .setSubText(if (push.isAlert) "Alerta" else if (push.isReminder) "Recordatorio" else null)
             .setContentTitle(push.title)
             .setContentText(push.body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(push.body))

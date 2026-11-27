@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -80,6 +83,25 @@ import com.resolum.alivia.features.nursing.presentation.container
 import com.resolum.alivia.features.nursing.presentation.content
 import com.resolum.alivia.features.nursing.presentation.icon
 import com.resolum.alivia.features.nursing.presentation.label
+import com.resolum.alivia.features.nursing.domain.models.CareActivityType
+import com.resolum.alivia.features.nursing.domain.models.CarePriority
+import com.resolum.alivia.features.nursing.domain.models.MedicationResult
+import com.resolum.alivia.features.nursing.reminders.AgendaChange
+import com.resolum.alivia.features.nursing.reminders.AgendaReminders
+import com.resolum.alivia.core.ui.theme.Motion
+import com.resolum.alivia.core.ui.theme.Danger
+import com.resolum.alivia.core.ui.theme.DangerSoft
+import com.resolum.alivia.core.ui.theme.Warning
+import com.resolum.alivia.core.ui.theme.WarningSoft
+import com.resolum.alivia.core.ui.theme.TealSoft
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.SwapHoriz
 import com.resolum.alivia.features.operations.presentation.orders.NotificationsButton
 import com.resolum.alivia.features.profiles.di.ProfileModule
 import java.time.DayOfWeek
@@ -94,8 +116,15 @@ fun ActivitiesScreen(
     onOpenNotifications: () -> Unit,
     onNewActivity: () -> Unit,
     viewModel: ActivitiesViewModel = viewModel {
-        ActivitiesViewModel(ActivityModule.getActivities(), ActivityModule.completeActivity(), ActivityModule.nameAgendaPeople(),
-            ProfileModule.getMyHousehold())
+        ActivitiesViewModel(
+            ActivityModule.getActivities(), ActivityModule.completeActivity(), ActivityModule.nameAgendaPeople(),
+            ProfileModule.getMyHousehold(),
+            getMedication = ActivityModule.getMedicationAdministration(),
+            recordMedication = ActivityModule.recordMedicationOutcome(),
+            syncReminders = { AgendaReminders.sync(it) },
+            onDoseRecorded = { AgendaReminders.dismissAlert(it.id) },
+            agendaChanged = AgendaReminders.agendaChanged,
+        )
     },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -142,6 +171,9 @@ fun ActivitiesScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
+                item(key = "agenda-change") {
+                    AgendaChangeBanner(state.agendaChange, onDismiss = viewModel::dismissAgendaChange)
+                }
                 state.error?.let { message ->
                     item {
                         ErrorBanner(message)
@@ -183,8 +215,14 @@ fun ActivitiesScreen(
     }
 
     state.selected?.let { activity ->
-        ActivityDetailSheet(activity, state.completing, state.completeError, onComplete = viewModel::complete,
-            onDismiss = { viewModel.open(null) })
+        ActivityDetailSheet(
+            activity, state.completing, state.completeError, onComplete = viewModel::complete,
+            onDismiss = { viewModel.open(null) },
+            medication = state.medication,
+            canRecordMedication = activity.canRecordMedication(state.canCreate),
+            onConfirmDose = { viewModel.recordMedication(MedicationResult.ADMINISTERED) },
+            onOmitDose = { viewModel.recordMedication(MedicationResult.OMITTED, it) },
+        )
     }
 }
 
@@ -305,15 +343,19 @@ private fun ActivityCard(activity: CareActivity, onClick: () -> Unit) {
                 }
                 activity.assistedPerson?.let { Detail(Icons.Outlined.Person, it) }
                 activity.responsible?.let { Detail(Icons.Outlined.VerifiedUser, "Resp: $it") }
+                if (activity.priority == CarePriority.HIGH || activity.priority == CarePriority.MEDIUM) {
+                    Detail(Icons.Outlined.Flag, "Prioridad ${activity.priority.label.lowercase()}",
+                        tint = if (activity.priority == CarePriority.HIGH) Danger else Warning)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun Detail(icon: ImageVector, text: String) {
+private fun Detail(icon: ImageVector, text: String, tint: Color = InkMuted) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Icon(icon, contentDescription = null, tint = InkMuted, modifier = Modifier.size(14.dp))
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(14.dp))
         Text(text, style = MaterialTheme.typography.bodySmall, color = Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -326,11 +368,16 @@ private fun ActivityDetailSheet(
     error: String?,
     onComplete: () -> Unit,
     onDismiss: () -> Unit,
+    medication: MedicationRecordState?,
+    canRecordMedication: Boolean,
+    onConfirmDose: () -> Unit,
+    onOmitDose: (String) -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Surface) {
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp).navigationBarsPadding(),
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 20.dp)
+                .navigationBarsPadding().imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -345,6 +392,8 @@ private fun ActivityDetailSheet(
                 HorizontalDivider(color = Outline)
                 DetailRow(activity.type.icon, "Tipo de actividad", activity.type.label)
                 HorizontalDivider(color = Outline)
+                DetailRow(Icons.Outlined.Flag, "Prioridad", activity.priority.label)
+                HorizontalDivider(color = Outline)
                 DetailRow(Icons.Outlined.Repeat, "Frecuencia", if (activity.recurring) "Se repite cada semana" else "No se repite")
                 HorizontalDivider(color = Outline)
                 DetailRow(Icons.Outlined.VerifiedUser, "Asignada a", activity.responsible ?: "Sin responsable asignado")
@@ -352,6 +401,11 @@ private fun ActivityDetailSheet(
                     HorizontalDivider(color = Outline)
                     DetailRow(Icons.Outlined.Person, "Persona asistida", it)
                 }
+            }
+            if (activity.type == CareActivityType.MEDICATION && medication != null) {
+                Text("Registro de la dosis", style = MaterialTheme.typography.titleMedium, color = Navy)
+                MedicationRecordSection(activity, medication, canRecordMedication, onConfirmDose, onOmitDose)
+                return@Column
             }
             error?.let { ErrorBanner(it) }
             val canComplete = activity.canComplete(LocalDateTime.now(Formats.zone))
@@ -391,5 +445,35 @@ private fun EmptyActivities() {
             Icon(Icons.Outlined.EventNote, contentDescription = null, tint = Navy, modifier = Modifier.size(30.dp))
         }
         Text("No hay actividades en estas fechas", style = MaterialTheme.typography.titleMedium, color = Navy, textAlign = TextAlign.Center)
+    }
+}
+
+/** Tells the caregiver that the agenda changed under them: activities reassigned away or newly given to them. */
+@Composable
+private fun AgendaChangeBanner(change: AgendaChange?, onDismiss: () -> Unit) {
+    AnimatedVisibility(
+        visible = change != null && !change.isEmpty,
+        enter = expandVertically(Motion.enter()) + fadeIn(Motion.enter()),
+        exit = shrinkVertically(Motion.exit()) + fadeOut(Motion.exit()),
+    ) {
+        val current = change ?: return@AnimatedVisibility
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TealSoft).padding(start = 14.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Icon(Icons.Outlined.SwapHoriz, contentDescription = null, tint = TealDark, modifier = Modifier.size(20.dp))
+            Column(Modifier.weight(1f).padding(start = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Tu agenda se actualizó", style = MaterialTheme.typography.titleSmall, color = Navy)
+                if (current.removed.isNotEmpty()) {
+                    Text("Ya no están a tu cargo: ${current.removed.joinToString()}.", style = MaterialTheme.typography.bodySmall, color = Ink)
+                }
+                if (current.added.isNotEmpty()) {
+                    Text("Nuevas a tu cargo: ${current.added.joinToString()}.", style = MaterialTheme.typography.bodySmall, color = Ink)
+                }
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Outlined.Close, contentDescription = "Cerrar aviso", tint = InkMuted, modifier = Modifier.size(18.dp))
+            }
+        }
     }
 }

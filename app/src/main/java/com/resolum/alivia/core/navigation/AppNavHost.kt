@@ -15,6 +15,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.resolum.alivia.features.iam.di.AuthModule
 import com.resolum.alivia.features.iam.domain.models.Session
+import com.resolum.alivia.features.iam.domain.models.UserRole
+import com.resolum.alivia.features.nursing.di.ActivityModule
+import com.resolum.alivia.features.nursing.reminders.AgendaReminders
 import com.resolum.alivia.features.iam.presentation.LoginScreen
 import com.resolum.alivia.features.iam.presentation.PasswordRecoveryScreen
 import com.resolum.alivia.features.iam.presentation.SplashScreen
@@ -103,7 +106,11 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                 LaunchedEffect(Unit) { goToLogin() }
             } else {
                 NotificationPermissionRequest()
-                LaunchedEffect(current) { NotificationsModule.registerPushDevice()() }
+                LaunchedEffect(current) {
+                    NotificationsModule.registerPushDevice()()
+                    // Relatives and caregivers get their agenda reminders even before opening the agenda.
+                    if (current.role != UserRole.TECHNICIAN) runCatching { ActivityModule.syncReminders() }
+                }
                 MainScreen(
                     session = current,
                     onOpenOrder = { navController.navigate(Routes.order(it)) },
@@ -113,6 +120,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
                         scope.launch {
                             // While the session is still valid, so this device stops getting the account's notifications.
                             withTimeoutOrNull(3_000) { NotificationsModule.unregisterPushDevice()() }
+                            AgendaReminders.clear()
                             AuthModule.signOutUseCase()()
                             goToLogin()
                         }

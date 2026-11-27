@@ -29,4 +29,8 @@ data class CareActivity(
     val status: CareActivityStatus,
     val recurring: Boolean,
     val priority: CarePriority,
+    /** The relative of the home is responsible, not a caregiver. */
+    val responsibleIsRelative: Boolean = false,
+    /** The signed-in account is responsible for it: it gets its reminders and may record its result. */
+    val mine: Boolean = false,
 )

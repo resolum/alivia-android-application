@@ -83,10 +83,12 @@ class NameAgendaPeopleUseCase(private val repository: CareNetworkRepository) {
             (repository.caregivers(person.id, person.householdId) as? NetworkResult.Success)?.data.orEmpty()
         }.associateBy { it.id }
         return activities.map { activity ->
+            val caregiver = activity.responsibleCaregiverId?.let(caregivers::get)
             activity.copy(
+                // A relative-led occurrence belongs to the relatives of the home, who are the ones that see it.
+                mine = caregiver?.isMe == true || activity.responsibleIsRelative,
                 assistedPerson = activity.assistedPerson ?: activity.assistedPersonProfileId?.let(persons::get),
-                responsible = activity.responsible ?: activity.responsibleCaregiverId?.let { id ->
-                    val caregiver = caregivers[id]
+                responsible = activity.responsible ?: activity.responsibleCaregiverId?.let {
                     when {
                         caregiver?.isMe == true -> "Tú"
                         caregiver?.fullName != null -> caregiver.fullName

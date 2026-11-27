@@ -30,6 +30,7 @@ object ActivityMapper {
             priority = enumOr(dto.priority, CarePriority.ROUTINE),
             assistedPersonProfileId = dto.assistedPerson?.id,
             responsibleCaregiverId = dto.responsible?.id?.takeIf { dto.responsible.type == "CAREGIVER" },
+            responsibleIsRelative = dto.responsible?.type == "RELATIVE",
         )
     }
 

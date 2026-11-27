@@ -19,3 +19,7 @@
 # Gson TypeToken generic types (R8 full mode).
 -keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken
 -keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken
+
+# Planned agenda reminders are stored as JSON with Gson so they can be rescheduled after a reboot.
+-keep class com.resolum.alivia.features.nursing.reminders.Reminder { *; }
+-keep class com.resolum.alivia.features.nursing.reminders.ReminderKind { *; }

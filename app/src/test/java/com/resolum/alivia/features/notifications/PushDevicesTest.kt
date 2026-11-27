@@ -112,7 +112,14 @@ class PushDevicesTest {
             "Falla en la puerta", " La cerradura no responde ",
             mapOf("notificationId" to "42", "type" to "ACTUATOR_FAILURE", "sourceId" to "7"),
         )
-        assertEquals(PushMessage(42, "Falla en la puerta", "La cerradura no responde", isAlert = true), alert)
+        assertEquals(PushMessage(42, "Falla en la puerta", "La cerradura no responde", isAlert = true, type = "ACTUATOR_FAILURE"), alert)
+        assertFalse(alert.isReminder)
+
+        val reminder = PushMessage.from("Recordatorio", "Enalapril", mapOf("type" to "CARE_ACTIVITY_REMINDER"))
+        assertTrue(reminder.isReminder)
+        assertTrue(reminder.touchesAgenda)
+        assertFalse(reminder.isAlert)
+        assertTrue(PushMessage.from("Nueva asignación", null, mapOf("type" to "ASSIGNMENT_CREATED")).touchesAgenda)
 
         val dataOnly = PushMessage.from(null, null, mapOf("title" to "Nueva orden", "body" to "Instalación", "notificationId" to "x"))
         assertEquals("Nueva orden", dataOnly.title)
