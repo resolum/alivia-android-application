@@ -13,7 +13,37 @@ enum class EvaluationResult { VIABLE, VIABLE_WITH_ADAPTATION, NOT_VIABLE }
 
 enum class InstallationResult { APPROVED, REJECTED }
 
-enum class DeviceType { MICROPHONE, ACTUATOR, SENSOR, HUB }
+enum class DeviceType {
+    MICROPHONE_EDGE,
+    ACTUATOR_EDGE,
+    MICROPHONE,
+    DOOR,
+    WINDOW,
+    CURTAIN,
+    LIGHT;
+
+    val isEdge: Boolean get() = this == MICROPHONE_EDGE || this == ACTUATOR_EDGE
+
+    val requiredEdge: DeviceType?
+        get() = when (this) {
+            MICROPHONE -> MICROPHONE_EDGE
+            DOOR, WINDOW, CURTAIN, LIGHT -> ACTUATOR_EDGE
+            MICROPHONE_EDGE, ACTUATOR_EDGE -> null
+        }
+}
+
+/**
+ * Room (habitación) of the home where the technician places a device, numbered like the rooms the plan counts; the
+ * key is what the edges use to name it.
+ */
+enum class Room(val key: String, val label: String) {
+    HABITACION_1("habitacion-1", "Habitación 1"),
+    HABITACION_2("habitacion-2", "Habitación 2"),
+    HABITACION_3("habitacion-3", "Habitación 3"),
+    HABITACION_4("habitacion-4", "Habitación 4"),
+    HABITACION_5("habitacion-5", "Habitación 5"),
+    HABITACION_6("habitacion-6", "Habitación 6"),
+}
 
 data class InstalledDevice(val alias: String, val macAddress: String, val type: DeviceType)
 
@@ -77,6 +107,8 @@ data class TechnicalOrder(
     val homeName: String get() = contactName?.let { "Hogar de $it" } ?: "Hogar de la solicitud"
 
     val isOpen: Boolean get() = progress == OrderProgress.SCHEDULED || progress == OrderProgress.IN_PROGRESS
+
+    fun has(type: DeviceType): Boolean = installedDevices.any { it.type == type }
 
     /**
      * Next step of a maintenance order: evaluate the report, confirm the visit, start it at the home and resolve it.

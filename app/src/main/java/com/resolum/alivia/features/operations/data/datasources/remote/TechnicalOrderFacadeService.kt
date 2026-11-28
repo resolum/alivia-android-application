@@ -13,8 +13,8 @@ class TechnicalOrderFacadeService(private val service: TechnicalOrderService) {
     suspend fun start(orderId: Long) = service.start(orderId)
     suspend fun recordEvaluation(orderId: Long, result: String, notes: String?) =
         service.recordEvaluation(orderId, EvaluationResultRequestDto(result, notes))
-    suspend fun registerDevice(orderId: Long, alias: String, macAddress: String, type: String) =
-        service.registerDevice(orderId, RegisterDeviceRequestDto(alias, macAddress, type))
+    suspend fun registerDevice(orderId: Long, alias: String, macAddress: String, type: String, room: String?) =
+        service.registerDevice(orderId, RegisterDeviceRequestDto(alias, macAddress, type, room))
     suspend fun removeDevice(orderId: Long, macAddress: String) = service.removeDevice(orderId, macAddress)
     suspend fun recordInstallation(orderId: Long, result: String, notes: String?) =
         service.recordInstallation(orderId, InstallationResultRequestDto(result, notes))

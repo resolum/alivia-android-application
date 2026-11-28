@@ -6,6 +6,7 @@ import com.resolum.alivia.features.operations.domain.models.IncidentAction
 import com.resolum.alivia.features.operations.domain.models.InstallationResult
 import com.resolum.alivia.features.operations.domain.models.MacAddress
 import com.resolum.alivia.features.operations.domain.models.ServiceType
+import com.resolum.alivia.features.operations.domain.models.Room
 import com.resolum.alivia.features.operations.domain.models.TechnicalOrder
 import com.resolum.alivia.features.operations.domain.repositories.TechnicalOrderRepository
 import com.resolum.alivia.features.shared.data.datasources.remote.NetworkResult
@@ -48,7 +49,9 @@ class FindInstallationOfRequestUseCase(private val repository: TechnicalOrderRep
 }
 
 class RegisterDeviceUseCase(private val repository: TechnicalOrderRepository) {
-    suspend operator fun invoke(order: TechnicalOrder, alias: String, macAddress: String, type: DeviceType?): NetworkResult<TechnicalOrder> {
+    suspend operator fun invoke(
+        order: TechnicalOrder, alias: String, macAddress: String, type: DeviceType?, room: Room? = null,
+    ): NetworkResult<TechnicalOrder> {
         val cleanAlias = alias.trim()
         val mac = MacAddress.format(macAddress)
         return when {
@@ -57,7 +60,14 @@ class RegisterDeviceUseCase(private val repository: TechnicalOrderRepository) {
             !MacAddress.isValid(mac) -> NetworkResult.Error("La dirección MAC necesita 12 dígitos hexadecimales.")
             order.installedDevices.any { it.macAddress == mac } -> NetworkResult.Error("Ese dispositivo ya está registrado en esta orden.")
             type == null -> NetworkResult.Error("Elige el tipo de dispositivo.")
-            else -> repository.registerDevice(order.id, cleanAlias, mac, type)
+            type.requiredEdge != null && !order.has(type.requiredEdge!!) -> NetworkResult.Error(
+                if (type.requiredEdge == DeviceType.MICROPHONE_EDGE)
+                    "Registra primero el Edge de control por voz."
+                else
+                    "Registra primero el Edge de actuadores.",
+            )
+            !type.isEdge && room == null -> NetworkResult.Error("Elige la habitación donde queda el dispositivo.")
+            else -> repository.registerDevice(order.id, cleanAlias, mac, type, if (type.isEdge) null else room)
         }
     }
 }

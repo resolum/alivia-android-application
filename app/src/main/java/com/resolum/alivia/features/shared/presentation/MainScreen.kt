@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.EventNote
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material3.Icon
@@ -32,6 +33,7 @@ import com.resolum.alivia.core.ui.theme.Surface
 import com.resolum.alivia.core.ui.theme.Teal
 import com.resolum.alivia.features.analytics.presentation.AutonomyScreen
 import com.resolum.alivia.features.devices.presentation.DevicesScreen
+import com.resolum.alivia.features.tracking.presentation.history.HistoryScreen
 import com.resolum.alivia.features.iam.domain.models.Session
 import com.resolum.alivia.features.iam.domain.models.UserRole
 import com.resolum.alivia.features.nursing.presentation.activities.ActivitiesScreen
@@ -49,6 +51,7 @@ enum class MainTab(val label: String, val icon: ImageVector) {
     ACTIVITIES("Actividades", Icons.Outlined.EventNote),
     DEVICES("Dispositivos", Icons.Outlined.Sensors),
     AUTONOMY("Autonomía", Icons.Outlined.Insights),
+    HISTORY("Historial", Icons.Outlined.History),
     PROFILE("Perfil", Icons.Outlined.AccountCircle);
 
     companion object {
@@ -56,7 +59,7 @@ enum class MainTab(val label: String, val icon: ImageVector) {
         fun tabsFor(role: UserRole): List<MainTab> = if (role == UserRole.TECHNICIAN) {
             listOf(HOME, ORDERS, SCHEDULE, PROFILE)
         } else {
-            listOf(HOME, ACTIVITIES, DEVICES, AUTONOMY, PROFILE)
+            listOf(HOME, ACTIVITIES, DEVICES, HISTORY, PROFILE)
         }
     }
 }
@@ -114,6 +117,7 @@ fun MainScreen(
                 MainTab.ACTIVITIES -> ActivitiesScreen(onOpenNotifications = openNotifications, onNewActivity = onNewActivity)
                 MainTab.DEVICES -> DevicesScreen(onOpenNotifications = openNotifications)
                 MainTab.AUTONOMY -> AutonomyScreen(onOpenNotifications = openNotifications)
+                MainTab.HISTORY -> HistoryScreen(onOpenNotifications = openNotifications)
                 MainTab.PROFILE -> ProfileScreen(session = session, onSignOut = onSignOut)
             }
         }

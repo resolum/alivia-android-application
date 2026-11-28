@@ -35,7 +35,7 @@ class IncidentResolutionTest {
     private val incident = IncidentSummaryDto(
         id = 84, code = "INC-2026-0084", status = "SCHEDULED", problemType = "BATTERY",
         description = "El sensor no detecta la ventana desde anoche.", occurredAt = "2026-11-04T13:00:00Z",
-        device = InstalledDeviceDto("Sensor de ventana", "00:1A:2B:3C:4D:5E", "SENSOR"),
+        device = InstalledDeviceDto("Sensor de ventana", "00:1A:2B:3C:4D:5E", "WINDOW"),
     )
 
     private fun dto(status: String = "SCHEDULED", startedAt: String? = null, summary: IncidentSummaryDto? = incident) =
@@ -71,7 +71,7 @@ class IncidentResolutionTest {
         assertEquals(IncidentProblem.BATTERY, summary.problem)
         assertEquals("Batería baja o agotada", summary.problem.label)
         assertEquals(Instant.parse("2026-11-04T13:00:00Z"), summary.occurredAt)
-        assertEquals(InstalledDevice("Sensor de ventana", "00:1A:2B:3C:4D:5E", DeviceType.SENSOR), summary.device)
+        assertEquals(InstalledDevice("Sensor de ventana", "00:1A:2B:3C:4D:5E", DeviceType.WINDOW), summary.device)
         assertFalse(order.awaitsResolution)
 
         val unknown = TechnicalOrderMapper.toDomain(dto(summary = IncidentSummaryDto(85, null, "WEIRD", "ROBOT", null, "no", null)))!!.incident!!

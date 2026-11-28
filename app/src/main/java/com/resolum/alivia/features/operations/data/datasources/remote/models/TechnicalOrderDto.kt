@@ -44,4 +44,4 @@ data class EvaluationResultRequestDto(val result: String, val notes: String?)
 
 data class InstallationResultRequestDto(val result: String, val notes: String?)
 
-data class RegisterDeviceRequestDto(val alias: String, val macAddress: String, val type: String)
+data class RegisterDeviceRequestDto(val alias: String, val macAddress: String, val type: String, val room: String? = null)

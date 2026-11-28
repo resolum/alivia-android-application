@@ -10,6 +10,7 @@ import com.resolum.alivia.features.operations.domain.models.InstalledDevice
 import com.resolum.alivia.features.operations.domain.models.MacAddress
 import com.resolum.alivia.features.operations.domain.models.OrderProgress
 import com.resolum.alivia.features.operations.domain.models.ServiceType
+import com.resolum.alivia.features.operations.domain.models.Room
 import com.resolum.alivia.features.operations.domain.models.TechnicalOrder
 import com.resolum.alivia.features.operations.domain.repositories.TechnicalOrderRepository
 import com.resolum.alivia.features.operations.domain.usecases.CompleteInstallationUseCase
@@ -86,11 +87,11 @@ class TechnicalOrderRulesTest {
         val repository = FakeRepository()
         val withDevice = order(devices = listOf(InstalledDevice("Mic", "00:1A:2B:3C:4D:5E", DeviceType.MICROPHONE)))
         val register = RegisterDeviceUseCase(repository)
-        assertTrue(register(withDevice, " ", "001A2B3C4D5E", DeviceType.HUB) is NetworkResult.Error)
-        assertTrue(register(withDevice, "Hub", "001A2B", DeviceType.HUB) is NetworkResult.Error)
-        assertTrue(register(withDevice, "Hub", "00-1a-2b-3c-4d-5e", DeviceType.HUB) is NetworkResult.Error)
+        assertTrue(register(withDevice, " ", "001A2B3C4D5E", DeviceType.MICROPHONE_EDGE) is NetworkResult.Error)
+        assertTrue(register(withDevice, "Edge", "001A2B", DeviceType.MICROPHONE_EDGE) is NetworkResult.Error)
+        assertTrue(register(withDevice, "Edge", "00-1a-2b-3c-4d-5e", DeviceType.MICROPHONE_EDGE) is NetworkResult.Error)
         assertTrue(register(withDevice, "Hub", "AABBCCDDEEFF", null) is NetworkResult.Error)
-        assertTrue(register(withDevice, "Hub", "aabbccddeeff", DeviceType.HUB) is NetworkResult.Success)
+        assertTrue(register(withDevice, "Edge", "aabbccddeeff", DeviceType.MICROPHONE_EDGE) is NetworkResult.Success)
         assertEquals("AA:BB:CC:DD:EE:FF", repository.lastMac)
 
         val complete = CompleteInstallationUseCase(repository)
@@ -99,10 +100,39 @@ class TechnicalOrderRulesTest {
         assertTrue(complete(withDevice, InstallationResult.APPROVED, "") is NetworkResult.Success)
     }
 
+    @Test
+    fun exposesExactInventoryTypesAndRequiresEdgesFirst() = runBlocking {
+        assertEquals(
+            listOf("MICROPHONE_EDGE", "ACTUATOR_EDGE", "MICROPHONE", "DOOR", "WINDOW", "CURTAIN", "LIGHT"),
+            DeviceType.entries.map { it.name },
+        )
+        assertEquals(DeviceType.MICROPHONE_EDGE, DeviceType.MICROPHONE.requiredEdge)
+        assertEquals(DeviceType.ACTUATOR_EDGE, DeviceType.DOOR.requiredEdge)
+        assertEquals(DeviceType.ACTUATOR_EDGE, DeviceType.WINDOW.requiredEdge)
+        assertEquals(DeviceType.ACTUATOR_EDGE, DeviceType.CURTAIN.requiredEdge)
+        assertEquals(DeviceType.ACTUATOR_EDGE, DeviceType.LIGHT.requiredEdge)
+
+        val repository = FakeRepository()
+        val register = RegisterDeviceUseCase(repository)
+        val noEdges = order()
+        val voiceOnly = order(devices = listOf(InstalledDevice("Edge voz", "5C:9B:A6:7A:56:BC", DeviceType.MICROPHONE_EDGE)))
+        val bothEdges = voiceOnly.copy(installedDevices = voiceOnly.installedDevices +
+            InstalledDevice("Edge actuadores", "36:DC:23:1C:73:C0", DeviceType.ACTUATOR_EDGE))
+
+        assertTrue(register(noEdges, "Mic", "00700782D868", DeviceType.MICROPHONE) is NetworkResult.Error)
+        assertTrue(register(voiceOnly, "Puerta", "8E94DF4CE52D", DeviceType.DOOR) is NetworkResult.Error)
+        assertTrue(register(bothEdges, "Puerta", "8E94DF4CE52D", DeviceType.DOOR) is NetworkResult.Error)
+        assertTrue(register(bothEdges, "Puerta", "8E94DF4CE52D", DeviceType.DOOR, Room.HABITACION_1) is NetworkResult.Success)
+        assertEquals(Room.HABITACION_1, repository.lastRoom)
+        assertTrue(register(noEdges, "Edge", "5C9BA67A56BC", DeviceType.MICROPHONE_EDGE, Room.HABITACION_2) is NetworkResult.Success)
+        assertNull(repository.lastRoom)
+    }
+
     private class FakeRepository : TechnicalOrderRepository {
         var mine: List<TechnicalOrder> = emptyList()
         var lastResult: EvaluationResult? = null
         var lastMac: String? = null
+        var lastRoom: Room? = null
         private fun anyOrder() = TechnicalOrderMapper.toDomain(
             TechnicalOrderDto(1, null, "draft", "EVALUATION", null, "COMPLETED", "2026-11-03", "09:00", "11:00", 7, "Carla",
                 null, null, null, null, null, null, null, null, null),
@@ -115,8 +145,9 @@ class TechnicalOrderRulesTest {
             lastResult = result
             return NetworkResult.Success(anyOrder())
         }
-        override suspend fun registerDevice(orderId: Long, alias: String, macAddress: String, type: DeviceType): NetworkResult<TechnicalOrder> {
+        override suspend fun registerDevice(orderId: Long, alias: String, macAddress: String, type: DeviceType, room: Room?): NetworkResult<TechnicalOrder> {
             lastMac = macAddress
+            lastRoom = room
             return NetworkResult.Success(anyOrder())
         }
         override suspend fun removeDevice(orderId: Long, macAddress: String) = NetworkResult.Success(anyOrder())
