@@ -65,6 +65,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,8 +75,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -100,6 +103,8 @@ import com.resolum.alivia.core.ui.theme.TealSoft
 import com.resolum.alivia.features.operations.di.OperationsModule
 import com.resolum.alivia.features.operations.domain.models.DeviceType
 import com.resolum.alivia.features.operations.domain.models.InstallationResult
+import com.resolum.alivia.features.operations.domain.models.MacAddress
+import com.resolum.alivia.features.operations.domain.models.Room
 import com.resolum.alivia.features.operations.domain.models.TechnicalOrder
 import com.resolum.alivia.features.operations.presentation.label
 
@@ -160,7 +165,8 @@ fun InstallationScreen(
                 InstallationStep.DEVICES -> {
                     PrimaryButton(
                         "Registrar dispositivo", onClick = viewModel::register, icon = Icons.Outlined.AddCircleOutline,
-                        enabled = state.form.alias.isNotBlank() && state.form.macValid && !state.duplicateMac && state.form.type != null,
+                        enabled = state.form.alias.isNotBlank() && state.form.macValid && !state.duplicateMac && state.form.type != null &&
+                            (state.form.type?.isEdge == true || state.form.room != null),
                         busy = state.busy, container = Navy,
                     )
                     SecondaryButton(
@@ -285,13 +291,9 @@ private fun DevicesStep(state: InstallationUiState, viewModel: InstallationViewM
     }
     AliviaCard {
         FieldTitle("2. Dirección MAC", null)
-        FilledField(
+        MacAddressField(
             value = state.form.macAddress,
             onValueChange = viewModel::updateMac,
-            placeholder = "00:1A:2B:3C:4D:5E",
-            icon = Icons.Outlined.Router,
-            monospace = true,
-            capitalization = KeyboardCapitalization.Characters,
             trailing = if (state.form.macAddress.isNotEmpty()) {
                 { IconButton(onClick = viewModel::clearMac) { Icon(Icons.Outlined.Cancel, contentDescription = "Borrar", tint = Ink) } }
             } else null,
@@ -325,15 +327,52 @@ private fun DevicesStep(state: InstallationUiState, viewModel: InstallationViewM
             )
             ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 DeviceType.entries.forEach { type ->
+                    val required = type.requiredEdge
+                    val enabled = required == null || order.has(required)
                     DropdownMenuItem(
-                        text = { Text(type.label) },
+                        text = {
+                            Column {
+                                Text(type.label)
+                                if (!enabled) Text(
+                                    if (required == DeviceType.MICROPHONE_EDGE) "Requiere Edge de voz" else "Requiere Edge de actuadores",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = InkMuted,
+                                )
+                            }
+                        },
                         leadingIcon = { Icon(iconOf(type), contentDescription = null, tint = TealDark) },
                         onClick = { viewModel.updateType(type); expanded = false },
+                        enabled = enabled,
                     )
                 }
             }
         }
         Text("Categoría del módulo de asistencia para mapeo en el hub central.", style = MaterialTheme.typography.bodySmall, color = Ink)
+    }
+    val type = state.form.type
+    if (type != null && !type.isEdge) {
+        AliviaCard {
+            FieldTitle("4. Habitación", null)
+            var roomsOpen by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(expanded = roomsOpen, onExpandedChange = { roomsOpen = it }) {
+                TextField(
+                    value = state.form.room?.label ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    placeholder = { Text("Elige la habitación") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = roomsOpen) },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = filledColors(),
+                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                )
+                ExposedDropdownMenu(expanded = roomsOpen, onDismissRequest = { roomsOpen = false }) {
+                    Room.entries.forEach { room ->
+                        DropdownMenuItem(text = { Text(room.label) }, onClick = { viewModel.updateRoom(room); roomsOpen = false })
+                    }
+                }
+            }
+            Text("Los edges usan la habitación para saber dónde está cada dispositivo.", style = MaterialTheme.typography.bodySmall, color = Ink)
+        }
     }
     if (order.installedDevices.isNotEmpty()) {
         AliviaCard {
@@ -451,6 +490,41 @@ private fun filledColors() = TextFieldDefaults.colors(
 )
 
 @Composable
+private fun MacAddressField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    var fieldValue by remember {
+        mutableStateOf(TextFieldValue(value, selection = TextRange(value.length)))
+    }
+    LaunchedEffect(value) {
+        if (value != fieldValue.text && (value.isEmpty() || value.length == 17)) {
+            fieldValue = TextFieldValue(value, selection = TextRange(value.length))
+        }
+    }
+    TextField(
+        value = fieldValue,
+        onValueChange = { incoming ->
+            val formatted = MacAddress.format(incoming.text)
+            fieldValue = TextFieldValue(formatted, selection = TextRange(formatted.length))
+            // Do not round-trip every key through the ViewModel: its recomposition can
+            // race fast scanners/ADB input and move the cursor between MAC octets.
+            if (formatted.isEmpty() || formatted.length == 17) onValueChange(formatted)
+        },
+        placeholder = { Text("00:1A:2B:3C:4D:5E") },
+        leadingIcon = { Icon(Icons.Outlined.Router, contentDescription = null, tint = InkMuted) },
+        trailingIcon = trailing,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
+        textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
+        shape = RoundedCornerShape(12.dp),
+        colors = filledColors(),
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
 private fun FilledField(
     value: String,
     onValueChange: (String) -> Unit,
@@ -502,9 +576,9 @@ private fun SecondaryButton(text: String, enabled: Boolean, onClick: () -> Unit)
 }
 
 private fun iconOf(type: DeviceType?): ImageVector = when (type) {
+    DeviceType.MICROPHONE_EDGE -> Icons.Outlined.Mic
+    DeviceType.ACTUATOR_EDGE -> Icons.Outlined.Memory
     DeviceType.MICROPHONE -> Icons.Outlined.Mic
-    DeviceType.ACTUATOR -> Icons.Outlined.SettingsInputComponent
-    DeviceType.SENSOR -> Icons.Outlined.Sensors
-    DeviceType.HUB -> Icons.Outlined.Router
+    DeviceType.DOOR, DeviceType.WINDOW, DeviceType.CURTAIN, DeviceType.LIGHT -> Icons.Outlined.SettingsInputComponent
     null -> Icons.Outlined.Memory
 }

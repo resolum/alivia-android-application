@@ -66,10 +66,13 @@ val OrderProgress.label: String
 
 val DeviceType.label: String
     get() = when (this) {
+        DeviceType.MICROPHONE_EDGE -> "Edge de control por voz"
+        DeviceType.ACTUATOR_EDGE -> "Edge de actuadores"
         DeviceType.MICROPHONE -> "Micrófono"
-        DeviceType.ACTUATOR -> "Actuador"
-        DeviceType.SENSOR -> "Sensor"
-        DeviceType.HUB -> "Hub central"
+        DeviceType.DOOR -> "Puerta"
+        DeviceType.WINDOW -> "Ventana"
+        DeviceType.CURTAIN -> "Cortina"
+        DeviceType.LIGHT -> "Luz"
     }
 
 @Composable

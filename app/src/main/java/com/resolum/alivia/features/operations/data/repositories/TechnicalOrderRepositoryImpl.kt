@@ -6,6 +6,7 @@ import com.resolum.alivia.features.operations.data.datasources.remote.models.Tec
 import com.resolum.alivia.features.operations.domain.models.DeviceType
 import com.resolum.alivia.features.operations.domain.models.EvaluationResult
 import com.resolum.alivia.features.operations.domain.models.InstallationResult
+import com.resolum.alivia.features.operations.domain.models.Room
 import com.resolum.alivia.features.operations.domain.models.TechnicalOrder
 import com.resolum.alivia.features.operations.domain.repositories.TechnicalOrderRepository
 import com.resolum.alivia.features.shared.data.datasources.remote.NetworkResult
@@ -23,8 +24,8 @@ class TechnicalOrderRepositoryImpl(private val facade: TechnicalOrderFacadeServi
     override suspend fun recordEvaluation(orderId: Long, result: EvaluationResult, notes: String?) =
         one { facade.recordEvaluation(orderId, result.name, notes) }
 
-    override suspend fun registerDevice(orderId: Long, alias: String, macAddress: String, type: DeviceType) =
-        one { facade.registerDevice(orderId, alias, macAddress, type.name) }
+    override suspend fun registerDevice(orderId: Long, alias: String, macAddress: String, type: DeviceType, room: Room?) =
+        one { facade.registerDevice(orderId, alias, macAddress, type.name, room?.key) }
 
     override suspend fun removeDevice(orderId: Long, macAddress: String) = one { facade.removeDevice(orderId, macAddress) }
 

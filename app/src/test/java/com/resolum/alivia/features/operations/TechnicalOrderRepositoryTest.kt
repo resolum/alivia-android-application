@@ -79,10 +79,10 @@ class TechnicalOrderRepositoryTest {
         assertEquals("Hogar de la solicitud", order.homeName)
         assertTrue(StartOrderUseCase(repository)(1) is NetworkResult.Success)
         assertTrue(RecordEvaluationUseCase(repository)(order, EvaluationResult.VIABLE, " Todo bien ") is NetworkResult.Success)
-        assertTrue(RegisterDeviceUseCase(repository)(order.copy(installedDevices = emptyList()), "Hub", "aabbccddeeff", DeviceType.HUB) is NetworkResult.Success)
+        assertTrue(RegisterDeviceUseCase(repository)(order.copy(installedDevices = emptyList()), "Edge", "aabbccddeeff", DeviceType.MICROPHONE_EDGE) is NetworkResult.Success)
         assertTrue(RemoveDeviceUseCase(repository)(1, "00:1A:2B:3C:4D:5E") is NetworkResult.Success)
         assertTrue(CompleteInstallationUseCase(repository)(order, InstallationResult.APPROVED, "") is NetworkResult.Success)
-        assertEquals(listOf("mine", "one", "two", "get", "start", "evaluation:VIABLE:Todo bien", "register:HUB:AA:BB:CC:DD:EE:FF",
+        assertEquals(listOf("mine", "one", "two", "get", "start", "evaluation:VIABLE:Todo bien", "register:MICROPHONE_EDGE:AA:BB:CC:DD:EE:FF",
             "remove:00:1A:2B:3C:4D:5E", "installation:APPROVED"), service.calls)
     }
 
@@ -106,7 +106,7 @@ class TechnicalOrderRepositoryTest {
         val long = "x".repeat(301)
         assertTrue(RecordEvaluationUseCase(repository)(order, EvaluationResult.NOT_VIABLE, long) is NetworkResult.Error)
         assertTrue(CompleteInstallationUseCase(repository)(order, InstallationResult.REJECTED, long) is NetworkResult.Error)
-        assertTrue(RegisterDeviceUseCase(repository)(order, "x".repeat(61), "001A2B3C4D5F", DeviceType.SENSOR) is NetworkResult.Error)
+        assertTrue(RegisterDeviceUseCase(repository)(order, "x".repeat(61), "001A2B3C4D5F", DeviceType.DOOR) is NetworkResult.Error)
         assertTrue(RegisterDeviceUseCase(repository)(order, "Mic 2", "00:1A:2B:3C:4D:5E", DeviceType.MICROPHONE) is NetworkResult.Error)
     }
 

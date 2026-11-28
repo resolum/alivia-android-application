@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.resolum.alivia.features.operations.domain.models.DeviceType
 import com.resolum.alivia.features.operations.domain.models.InstallationResult
 import com.resolum.alivia.features.operations.domain.models.MacAddress
+import com.resolum.alivia.features.operations.domain.models.Room
 import com.resolum.alivia.features.operations.domain.models.TechnicalOrder
 import com.resolum.alivia.features.operations.domain.usecases.CompleteInstallationUseCase
 import com.resolum.alivia.features.operations.domain.usecases.GetOrderUseCase
@@ -25,7 +26,7 @@ enum class InstallationStep(val number: Int, val title: String) {
     CLOSING(4, "Cierre"),
 }
 
-data class DeviceForm(val alias: String = "", val macAddress: String = "", val type: DeviceType? = null) {
+data class DeviceForm(val alias: String = "", val macAddress: String = "", val type: DeviceType? = null, val room: Room? = null) {
     val macComplete: Boolean get() = macAddress.length == 17
     val macValid: Boolean get() = MacAddress.isValid(macAddress)
 }
@@ -79,6 +80,7 @@ class InstallationViewModel(
     fun updateMac(mac: String) = _state.update { it.copy(form = it.form.copy(macAddress = MacAddress.format(mac)), error = null) }
     fun clearMac() = _state.update { it.copy(form = it.form.copy(macAddress = "")) }
     fun updateType(type: DeviceType) = _state.update { it.copy(form = it.form.copy(type = type), error = null) }
+    fun updateRoom(room: Room) = _state.update { it.copy(form = it.form.copy(room = room), error = null) }
     fun toggleTested(mac: String) = _state.update { it.copy(tested = if (mac in it.tested) it.tested - mac else it.tested + mac) }
     fun selectResult(result: InstallationResult) = _state.update { it.copy(result = result, error = null) }
     fun updateNotes(notes: String) = _state.update { it.copy(notes = notes.take(300), error = null) }
@@ -88,7 +90,7 @@ class InstallationViewModel(
         val order = current.order ?: return
         _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
-            when (val result = registerDevice(order, current.form.alias, current.form.macAddress, current.form.type)) {
+            when (val result = registerDevice(order, current.form.alias, current.form.macAddress, current.form.type, current.form.room)) {
                 is NetworkResult.Success -> _state.update { it.copy(busy = false, order = result.data, form = DeviceForm()) }
                 is NetworkResult.Error -> _state.update { it.copy(busy = false, error = result.message) }
             }
